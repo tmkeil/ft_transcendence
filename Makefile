@@ -1,15 +1,25 @@
 .DEFAULT_GOAL := help
 
+UNAME_S := $(shell uname -s)
+
 up:
-	@echo "Starting services..."
+ifeq ($(UNAME_S),Linux)
+	@echo "Starting Services on Linux..."
+	sudo docker compose up --build -d
+else ifeq ($(UNAME_S),Darwin)
+	@echo "Starting Services on macOS..."
 	docker compose up --build -d
+endif
 
-# Stops and removes all services, networks, and volumes.
 down:
-	@echo "Stopping and removing services..."
+ifeq ($(UNAME_S),Linux)
+	@echo "Stopping and removing Services on Linux..."
+	sudo docker compose down -v
+else ifeq ($(UNAME_S),Darwin)
+	@echo "Stopping and removing Services on macOS..."
 	docker compose down -v
+endif
 
-# Reboots all services, networks, and volumes.
 re: down up
 
 help:
@@ -22,4 +32,4 @@ help:
 	@echo "  make re        - Remove and restart all services"
 	@echo "----------------------------------------------------"
 
-.PHONY: up down logs help
+.PHONY: up down re help

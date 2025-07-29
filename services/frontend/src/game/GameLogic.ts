@@ -29,8 +29,10 @@ export class GameLogic {
 		const paddleSize = GameConfig.paddleSize;
 		
 		//	Mock AI
-		paddle1.position.z = ball.position.z;
-		paddle2.position.z = ball.position.z;
+		if (ball.position.x < 0 && ball.speed.hspd < 0)
+			paddle1.position.z += Math.sign(ball.position.z - paddle1.position.z) * paddleSpeed;
+		if (ball.position.x > 0 && ball.speed.hspd > 0)
+			paddle2.position.z += Math.sign(ball.position.z - paddle2.position.z) * paddleSpeed;
 
 		//	Move left paddle with [W]:[S]
 		/*if (this.keys["w"] || this.keys["W"])
