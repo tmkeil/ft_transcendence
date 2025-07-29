@@ -2,12 +2,12 @@
 
 up:
 	@echo "Starting services..."
-	docker-compose up --build -d
+	docker compose up --build -d
 
 # Stops and removes all services, networks, and volumes.
 down:
 	@echo "Stopping and removing services..."
-	docker-compose down -v
+	docker compose down -v
 
 # Reboots all services, networks, and volumes.
 re: down up
