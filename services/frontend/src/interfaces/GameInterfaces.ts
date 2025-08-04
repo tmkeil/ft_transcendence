@@ -19,6 +19,11 @@ export interface BallMesh extends BABYLON.Mesh {
 	speed:		Speed;
 }
 
+//	Paddle Info
+export interface PaddleMesh extends BABYLON.Mesh {
+	speed:		Speed;
+}
+
 //	Game Settings
 export interface GameSettings {
 	opponent:		'PERSON' | 'REMOTE' | 'AI';
@@ -30,8 +35,8 @@ export interface GameSettings {
 export interface GameScene extends BABYLON.Scene {
 	//	Game objects
 	ball:		BallMesh;
-	paddle1:	BABYLON.Mesh;
-	paddle2:	BABYLON.Mesh;
+	paddle1:	PaddleMesh;
+	paddle2:	PaddleMesh;
 	upperWall:	BABYLON.Mesh;
 	bottomWall:	BABYLON.Mesh;
 	scores:		BABYLON.DynamicTexture;

@@ -1,4 +1,4 @@
-import { GameScene , BallMesh } from "../interfaces/GameInterfaces.js";
+import { GameScene , BallMesh, PaddleMesh } from "../interfaces/GameInterfaces.js";
 import { GameConfig } from "./GameConfig.js";
 //	import * as BABYLON from 'babylonjs';
 
@@ -97,19 +97,25 @@ export class SceneBuilder {
 			speed: GameConfig.ballSpeed,
 		}) as BallMesh;
 
-		//	Paddle One
-		scene.paddle1 = BABYLON.MeshBuilder.CreateBox("paddle1", {
-			height : 1,
-			width : 1,
-			depth : paddleSize,
-		}, scene)
-
-		//	Paddle Two
-		scene.paddle2 = BABYLON.MeshBuilder.CreateBox("paddle2", {
-			height : 1,
-			width : 1,
-			depth : paddleSize,
-		}, scene)
+		// Left Paddle
+		const paddle1Mesh = BABYLON.MeshBuilder.CreateBox("paddle1", {
+			height: 1,
+			width: 1,
+			depth: paddleSize,
+		}, scene);
+		scene.paddle1 = Object.assign(paddle1Mesh, {
+			speed: { hspd: 0, vspd: 0 }, // Unique speed object for paddle1
+		}) as PaddleMesh;
+	
+		// Right Paddle
+		const paddle2Mesh = BABYLON.MeshBuilder.CreateBox("paddle2", {
+			height: 1,
+			width: 1,
+			depth: paddleSize,
+		}, scene);
+		scene.paddle2 = Object.assign(paddle2Mesh, {
+			speed: { hspd: 0, vspd: 0 }, // Unique speed object for paddle2
+		}) as PaddleMesh;
 
 		//	Upper Wall
 		scene.upperWall = BABYLON.MeshBuilder.CreateBox("upperwall", {

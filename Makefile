@@ -4,16 +4,16 @@ UNAME_S := $(shell uname -s)
 
 up:
 	@echo "Starting Services..."
-	sudo docker compose up --build -d
-	sudo docker ps -a
+	docker compose up --build -d
+	docker ps -a
 
 down:
 	@echo "Stopping and removing Services..."
-	sudo docker compose down
+	docker compose down
 
 prune: down
 	@echo "Nuking all Services..."
-	sudo docker system prune -af --volumes
+	docker system prune -af --volumes
 
 re: down up
 

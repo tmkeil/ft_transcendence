@@ -30,9 +30,17 @@ export class GameLogic {
 		
 		//	Mock AI
 		if (ball.position.x < 0 && ball.speed.hspd < 0)
-			paddle1.position.z += Math.sign(ball.position.z - paddle1.position.z) * paddleSpeed;
+			paddle1.speed.vspd += ((Math.sign(ball.position.z - paddle1.position.z) * paddleSpeed) - paddle1.speed.vspd) * 0.5;
+		else
+			paddle1.speed.vspd *= 0.95;
 		if (ball.position.x > 0 && ball.speed.hspd > 0)
-			paddle2.position.z += Math.sign(ball.position.z - paddle2.position.z) * paddleSpeed;
+			paddle2.speed.vspd += ((Math.sign(ball.position.z - paddle2.position.z) * paddleSpeed) - paddle2.speed.vspd) * 0.5;
+		else
+			paddle2.speed.vspd *= 0.95;
+
+		//	Move offset paddle position using speed variables
+		paddle1.position.z += paddle1.speed.vspd;
+		paddle2.position.z += paddle2.speed.vspd;
 
 		//	Move left paddle with [W]:[S]
 		/*if (this.keys["w"] || this.keys["W"])
@@ -66,6 +74,10 @@ export class GameLogic {
 		const paddleSize = GameConfig.paddleSize;
 
 		//	Update ball position based on speed attribute
+		ball.position.x = Math.max(-GameConfig.FIELD_WIDTH, Math.min(GameConfig.FIELD_WIDTH, ball.position.x));
+		ball.position.z = Math.max(-GameConfig.FIELD_HEIGHT, Math.min(GameConfig.FIELD_HEIGHT, ball.position.z));
+		ball.speed.hspd = Math.max(-5, Math.min(5, ball.speed.hspd));
+		ball.speed.vspd = Math.max(-5, Math.min(5, ball.speed.vspd));
 		ball.position.x += ball.speed.hspd;
 		ball.position.z += ball.speed.vspd;
 		
@@ -81,6 +93,7 @@ export class GameLogic {
 			else	//	Block
 			{
 				ball.speed.hspd = -ball.speed.hspd;
+				ball.speed.vspd += paddle1.speed.vspd;
 				this.screenshake(ball.speed.hspd);
 			}
 		}
@@ -97,13 +110,14 @@ export class GameLogic {
 			else	//	Block
 			{
 				ball.speed.hspd = -ball.speed.hspd;
+				ball.speed.vspd += paddle2.speed.vspd;
 				this.screenshake(ball.speed.hspd);
 			}
 		}
 
 		//	Bounce off upper and bottom wall (reverse vertical speed)
-		if ((ball.position.z > (this.scene.upperWall.position.z - 1) && ball.speed.vspd > 0)
-			|| (ball.position.z < (this.scene.bottomWall.position.z + 1) && ball.speed.vspd < 0))
+		if ((ball.position.z > (this.scene.upperWall.position.z - ball.speed.vspd - 1) && ball.speed.vspd > 0)
+			|| (ball.position.z < (this.scene.bottomWall.position.z - ball.speed.vspd + 1) && ball.speed.vspd < 0))
 		{
 			this.screenshake(ball.speed.vspd);
 			ball.speed.vspd = -ball.speed.vspd;

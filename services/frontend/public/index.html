@@ -1,17 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>Transcendence Pong</title>
-	<link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transcendence Pong</title>
+    <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-	<h1>Transcendence Pong</h1>
-	<canvas id="gameCanvas"></canvas>
-	<button id="startButton">Start Game</button>
+    <h1>Transcendence Pong</h1>
+    <canvas id="gameCanvas"></canvas>
+    <button id="startButton">Start Game</button>
 
-	<script src="https://cdn.babylonjs.com/babylon.js"></script>
-	<script type="module" src="main.js"></script>
+    <h2>User Management</h2>
+    <form id="addUserForm">
+        <input type="text" id="userName" placeholder="Enter name" required />
+        <button type="submit">Add User</button>
+    </form>
+    <ul id="userList"></ul>
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script type="module" src="main.js"></script>
+    <script type="module" src="/db_web_api.js"></script>
+    <script type="module">
+        import { fetchUsers, addUser } from './db_web_api.js';
+
+        const userList = document.getElementById('userList');
+        const addUserForm = document.getElementById('addUserForm');
+        const userNameInput = document.getElementById('userName');
+
+        // Function to render users
+        async function renderUsers() {
+            const users = await fetchUsers();
+            userList.innerHTML = '';
+            users.forEach(user => {
+                const li = document.createElement('li');
+                li.textContent = `${user.id}: ${user.name}`;
+                userList.appendChild(li);
+            });
+        }
+
+        // Handle form submission
+        addUserForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const name = userNameInput.value.trim();
+            if (name) {
+                await addUser(name);
+                userNameInput.value = '';
+                renderUsers();
+            }
+        });
+
+        // Initial render
+        renderUsers();
+    </script>
 </body>
 </html>
