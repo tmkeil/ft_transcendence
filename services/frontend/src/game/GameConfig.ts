@@ -4,10 +4,11 @@ export class GameConfig {
 	public static readonly	FIELD_WIDTH = 100;
 	public static readonly	FIELD_HEIGHT = 40;
 	public static readonly	PADDLE_RATIO = 1/6;
+	public static readonly	PADDLE_ACC = 0.2;
 
 	private static settings: GameSettings = {
 		ai_difficulty:	'MEDIUM',
-		opponent:		'PERSON',
+		opponent:		'AI',
 		player_one_ai:	false,
 		player_two_ai:	false
 	};

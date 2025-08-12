@@ -1,13 +1,14 @@
 import { GameStatus, GameScene } from "../interfaces/GameInterfaces.js";
-import { GameConfig, GameLogic, SceneBuilder } from "../game/index.js";
+import { GameConfig, GameLogic, PaddleLogic, SceneBuilder } from "../game/index.js";
 import { InputHandler } from "./InputHandler.js";
 
 export class GameManager {
-	private gameStatus:		GameStatus;
-	private inputHandler:	InputHandler;
-	private gameLogic:		GameLogic;
-	private sceneBuilder:	SceneBuilder;
-	private scene:			GameScene;
+	private	gameStatus:		GameStatus;
+	private	inputHandler:	InputHandler;
+	private	gameLogic:		GameLogic;
+	private	sceneBuilder:	SceneBuilder;
+	private	scene:			GameScene;
+	private	paddleLogic:	PaddleLogic;
 
 	constructor() {
 		this.gameStatus = {
@@ -20,7 +21,10 @@ export class GameManager {
 		this.sceneBuilder = new SceneBuilder("gameCanvas");
 		this.scene = this.sceneBuilder.createScene();
 		this.gameLogic = new GameLogic(this.scene, this.gameStatus, this.inputHandler.getKeys());
+		this.paddleLogic = new PaddleLogic(this.scene, this.gameStatus, this.inputHandler.getKeys());
 
+		this.paddleLogic.setGameLogic(this.gameLogic);
+		this.gameLogic.setPaddleLogic(this.paddleLogic);
 		this.setUpEventListeners();
 		this.startGameLoop();
 	}
@@ -56,9 +60,8 @@ export class GameManager {
 		this.sceneBuilder.getEngine().runRenderLoop(() => {
 			if (!this.gameStatus.running)
 				return;
-			if (this.gameStatus.playing) {
+			if (this.gameStatus.playing)
 				this.gameLogic.update();
-			}
 			this.scene.render();
 		});
 	}
