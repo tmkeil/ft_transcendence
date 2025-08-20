@@ -133,8 +133,11 @@ export class PaddleLogic {
 	}
 
 
-	//	Paddle is moved my getting position of opponents paddle
+	//	Paddle is moved by getting position of opponents paddle
 	public remotePaddleControl(paddle: PaddleMesh) : number {
-		return (goal_position);
+		const	paddleSpeed = GameConfig.paddleSpeed;
+		const	ball = this.scene.ball;
+
+		return (Math.sign(ball.position.z - paddle.position.z) * paddleSpeed);
 	}
 }

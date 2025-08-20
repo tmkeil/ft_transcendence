@@ -53,8 +53,8 @@ export class GameLogic {
 		//	Played by one peson and one AI
 		if (GameConfig.getOpponent == 'REMOTE')
 		{
-			p1_spd = this.paddleLogic.dualPaddleControl(paddle1);
-			paddle2.position.z = this.paddleLogic.remotePaddleControl(paddle2);
+			p1_spd = this.paddleLogic.remotePaddleControl(paddle1);
+			p2_spd = this.paddleLogic.remotePaddleControl(paddle2);
 		}
 
 		//	Move in direction

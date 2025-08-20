@@ -8,7 +8,7 @@ export class GameConfig {
 
 	private static settings: GameSettings = {
 		ai_difficulty:	'HARD',
-		opponent:		'AI'
+		opponent:		'REMOTE'
 	};
 
 	public static get ballSpeed() : Speed {
