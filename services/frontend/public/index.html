@@ -1,120 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Transcendence Pong</title>
-  <link rel="stylesheet" href="styles.css" />
-  <style>
-    #chat { display:none; max-width: 640px; }
-    #log { width: 100%; }
-    form { margin: 1rem 0; }
-  </style>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Transcendence Pong</title>
+	<link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
-  <h1>Transcendence Pong</h1>
-  <canvas id="gameCanvas"></canvas>
-  <button id="startButton">Start Game</button>
+	<h1>Transcendence Pong</h1>
+	<canvas id="gameCanvas"></canvas>
+	<button id="startButton">Start Game</button>
 
-  <h2>User Management</h2>
-  <form id="addUserForm">
-    <input type="text" id="userName" placeholder="Enter name" required />
-    <button type="submit">Register</button>
-  </form>
+	<h2>User Management</h2>
+	<form id="addUserForm">
+		<input type="text" id="userName" placeholder="Enter name" required />
+		<button type="submit">Register</button>
+	</form>
 
-  <div id="chat">
-    <textarea id="log" cols="50" rows="10" readonly></textarea><br />
-    <input id="msg" type="text" placeholder="Type a message..." />
-    <button id="send">Send</button>
-  </div>
-
-  <script type="module">
-    let user = null;
-    let socket = null;
-
-    const form = document.getElementById('addUserForm');
-    const nameInput = document.getElementById('userName');
-    const chatBox = document.getElementById('chat');
-    const log = document.getElementById('log');
-    const input = document.getElementById('msg');
-    const sendBtn = document.getElementById('send');
-
-    const WS_URL = location.protocol === 'https:'
-      ? `wss://${location.host}/ws`
-      : `ws://${location.host}/ws`;
-
-    form.addEventListener('submit', async (e) => {
-	  console.log('Form submitted');
-      e.preventDefault();
-      const name = nameInput.value.trim();
-      if (!name) return;
-
-      try {
-        // Register a user and add him to the users table (for now)
-        const res = await fetch('http://localhost:3000/users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name })
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        user = await res.json();
-
-        // Display the chat for a registered user
-        chatBox.style.display = 'block';
-        appendLog(`Registered as "${user.name}" (id=${user.id})`);
-
-        // Establish a new websocket for this user
-        socket = new WebSocket(WS_URL);
-
-        // When this client connects to the server:
-        socket.onopen = () => {
-          appendLog('Connected to chat.');
-        };
-
-        // When the server sends a message to this client:
-        socket.onmessage = (event) => {
-          try {
-            const { userId, content } = JSON.parse(event.data);
-            appendLog(`${userId}: ${content}`);
-          } catch {
-            appendLog(String(event.data));
-          }
-        };
-
-        // When this client closes the connection:
-        socket.onclose = () => appendLog('Disconnected.');
-
-        // When there is an error with the connection:
-        socket.onerror = () => appendLog('WebSocket error.');
-
-        nameInput.value = '';
-      } catch (err) {
-        appendLog('Registration failed.');
-        console.error(err);
-      }
-    });
-
-    // When the client sends something in the chat box
-    sendBtn.addEventListener('click', sendMessage);
-    input.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendMessage();
-    });
-
-    // Send the message to the server
-    function sendMessage() {
-      const text = input.value.trim();
-      if (!text || !socket || socket.readyState !== WebSocket.OPEN || !user) return;
-      const payload = JSON.stringify({ userId: user.id, content: text });
-      socket.send(payload);
-      appendLog(`You: ${text}`);
-      input.value = '';
-    }
-
-    // Append the message to the log box
-    function appendLog(line) {
-      log.value += line + '\n';
-      log.scrollTop = log.scrollHeight;
-    }
-  </script>
+	<div id="chat">
+		<textarea id="log" cols="50" rows="10" readonly></textarea><br />
+		<input id="msg" type="text" placeholder="Type a message..." />
+		<button id="send">Send</button>
+	</div>
+	<script src="https://cdn.babylonjs.com/babylon.js"></script>
+	<script type="module" src="/db_web_api.js"></script>
+	<script type="module" src="main.js"></script>
 </body>
+
 </html>
