@@ -1,11 +1,24 @@
 //	import * as BABYLON from 'babylonjs';
 
 //	Game Status
+
+export interface ServerState {
+	started: boolean;
+	p1Y: number;
+	p2Y: number;
+	ballX: number;
+	ballY: number;
+	scoreL: number;
+	scoreR: number;
+	vx: number;
+	vy: number;
+}
+
 export interface GameStatus {
 	p1Score:	number,
 	p2Score:	number,
 	running:	boolean,
-	playing:	boolean
+	playing:	boolean,
 }
 
 //	Speed values
@@ -17,11 +30,13 @@ export interface Speed {
 //	Ball Info
 export interface BallMesh extends BABYLON.Mesh {
 	speed:		Speed;
+	position:	BABYLON.Vector3;
 }
 
 //	Paddle Info
 export interface PaddleMesh extends BABYLON.Mesh {
 	speed:		Speed;
+	position:	BABYLON.Vector3;
 }
 
 //	Game Settings

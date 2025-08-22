@@ -64,20 +64,42 @@ export class GameManager {
 				this.gameLogic.update();
 			this.scene.render();
 		});
-	}
+        }
 
-	private cleanup() : void {
-		console.log("Cleaning up game resources...");
+        private cleanup(): void {
+          console.log('Cleaning up game resources...');
 
-		//	Clean scene objects
-		if (this.scene && !this.scene.isDisposed)
-			this.scene.dispose();
+          //	Clean scene objects
+          if (this.scene && !this.scene.isDisposed) this.scene.dispose();
 
-		//	CLean engine
-		if (this.sceneBuilder.getEngine() && !this.sceneBuilder.getEngine().isDisposed)
-			this.sceneBuilder.getEngine().dispose();
+          //	CLean engine
+          if (this.sceneBuilder.getEngine() &&
+              !this.sceneBuilder.getEngine().isDisposed)
+            this.sceneBuilder.getEngine().dispose();
 
-		//	End game
-		this.gameStatus.running = false;
-	}
+          //	End game
+          this.gameStatus.running = false;
+        }
+
+        public applyServerState(s: {
+          p1Y: number,
+          p2Y: number,
+          ballX: number,
+          ballY: number,
+          scoreL: number,
+          scoreR: number,
+          started: boolean
+        }) {
+          this.scene.paddle1.position.z = s.p1Y;
+          this.scene.paddle2.position.z = s.p2Y;
+          this.scene.ball.position.x = s.ballX;
+          this.scene.ball.position.z = s.ballY;
+          this.gameStatus.p1Score = s.scoreL;
+          this.gameStatus.p2Score = s.scoreR;
+          this.gameStatus.playing = s.started;
+        }
+
+		public getInputHandler(): InputHandler {
+			return this.inputHandler;
+		}
 }

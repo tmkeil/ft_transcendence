@@ -5,6 +5,7 @@
 import { GameManager } from './managers/index.js';
 import { InputHandler } from './managers/index.js';
 import { RemotePlayerManager } from './managers/index.js';
+import { ServerState } from './interfaces/GameInterfaces';
 
 class Chat {
     private form;
@@ -91,8 +92,6 @@ export class App {
 		this.gameManager = new GameManager();
 		// Initialize the user, when submitting the form
 		this.init_registration();
-		// Welcome the user
-		console.log('Welcome to the game!');
 	}
 
 	private async init_registration(): Promise<void> {
@@ -112,7 +111,7 @@ export class App {
 			if (!name) return;
 
 			// Send a POST request to the server to register the user
-			const res = await fetch('http:localhost:3000/users', {
+			const res = await fetch('http://localhost:3000/users', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ name })
@@ -141,17 +140,30 @@ export class App {
 		this.Chat.show_chatbox();
 
 		// Bind this (append_log) to the user's/subscriber's callback to get fire when a message arrives from the server
-		this.playerManager.addCallback((msg: string) => {
-			this.Chat.append_log(msg);
+		// this.playerManager.addCallback((msg: string) => {
+		// 	this.Chat.append_log(msg);
+		// });
+		this.playerManager.onChat((msg: { userId: number, content: string }) => {
+			this.Chat.append_log(`${user.name}: ${msg.content}`);
+		});
+
+		// Bind applyServerState to the RemotePlayerManager to update the game state when a state message arrives from the server
+		this.playerManager.onState((state) => {
+			this.gameManager.applyServerState(state);
 		});
 
 		// Set up send handler and bind eventlistener to the send button and input field
 		// Fire the lambda function when the user clicks the send button or presses Enter in the input field
 		this.Chat.send_handler((msg: string) => {
-			console.log(`Sending message: ${msg}`);
-			this.playerManager?.send(msg);
+			this.playerManager?.sendChatMessage(msg);
 			this.Chat.append_log(`Me: ${msg}`);
-		})
+		});
+
+		// Bind the RemotePlayerManager to the InputHandler for remote input handling
+		this.gameManager.getInputHandler().bindRemote(this.playerManager);
+
+		this.playerManager.join('room1');
+		this.playerManager.ready();
 	}
 }
 

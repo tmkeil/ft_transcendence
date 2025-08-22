@@ -109,22 +109,38 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
   ws.on("message", (message) => {
     try {
       const parsed = JSON.parse(message);
-      const { userId, content } = parsed;
-      db.run(
-        "INSERT INTO messages (userId, content) VALUES (?, ?)",
-        [userId, content],
-        (err) => {
-          if (err) console.error("DB Error:", err.message);
-        }
-      );
+      const { type } = parsed;
+      console.log("Received message type:", type);
 
-	  console.log("Received message:", parsed);
-      // Send the message, which the client sent to all connected clients
-      for (const client of clients) {
-        if (client !== ws && client.readyState === 1) {
-          client.send(JSON.stringify({ userId, content }));
+      console.log("parsed:", parsed);
+	  
+      if (type === "chat") {
+        console.log("Trying to store chat message in the database");
+        const { userId, content } = parsed;
+        db.run("INSERT INTO messages (userId, content) VALUES (?, ?)", [
+          userId,
+          content,
+        ]);
+
+        // Send the message, which the client sent to all connected clients
+        for (const client of clients) {
+          if (client !== ws && client.readyState === 1) {
+            console.log("Broadcasting message to other clients");
+            client.send(
+              JSON.stringify({ type: "chat", userId: userId, content: content })
+            );
+          }
         }
       }
+	  else if (type === 'input') {
+		// Handle input from the client
+		console.log("Received input from client:", parsed);
+
+
+	  }
+	  else if (type === 'join') {
+		// Join a game room
+	  }
     } catch (e) {
       console.error("Invalid JSON received:", message);
       return;
