@@ -58,10 +58,16 @@ export class GameManager {
 
 	private startGameLoop() : void {
 		this.sceneBuilder.getEngine().runRenderLoop(() => {
+			// Running is set on true, if the game engine is alive
 			if (!this.gameStatus.running)
 				return;
+			// If both players are ready.
+			// In case of a remote player, it is ready, if 2 joined the room and clicked on ready.
+			// update() handles the physics (paddles/ball) of non-remote players and Updates the score texture on the game map
+			// If its a remote player, the physics comes from the server.
 			if (this.gameStatus.playing)
 				this.gameLogic.update();
+			// Here the scene will be rendered again
 			this.scene.render();
 		});
         }
@@ -81,6 +87,7 @@ export class GameManager {
           this.gameStatus.running = false;
         }
 
+	// Function which is triggered, when the server sends a state update (in case of remote players)
         public applyServerState(s: {
           p1Y: number,
           p2Y: number,
