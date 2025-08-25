@@ -2,8 +2,7 @@ export class UserManager {
 	private currentUser: { id: number, username: string } | null = null;
 
 	public async register(username: string, password: string): Promise<boolean> {
-		// TODO: Replace with real API call
-		const res = await fetch('/api/register', {
+		const res = await fetch(`http://${location.host}:3000/api/register`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ username, password })
@@ -15,8 +14,7 @@ export class UserManager {
 	}
 
 	public async login(username: string, password: string): Promise<boolean> {
-		// TODO: Replace with real API call
-		const res = await fetch('/api/login', {
+		const res = await fetch(`http://${location.host}:3000/api/login`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ username, password })

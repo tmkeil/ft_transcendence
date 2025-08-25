@@ -2,7 +2,7 @@ import Fastify from "fastify";
 import sqlite3 from "sqlite3";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const fastify = Fastify({ logger: true });
 // const db = new sqlite3.Database('./database.sqlite');
@@ -36,7 +36,8 @@ const initDb = () => {
 			content TEXT,
 			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY(userId) REFERENCES users(id)
-			)`);
+			)
+		`);
 		// Create settings table with id <INTEGER PRIMARY KEY>, key <TEXT UNIQUE>, value <TEXT>
 		db.run(
 		"CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, key TEXT UNIQUE, value TEXT)"
@@ -139,6 +140,61 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 	});
 });
 
+fastify.post("/api/register", (request, reply) => {
+	const { username, email, password } = request.body;
+
+	if (!username || !email || !password) {
+		return reply.code(400).send({ error: "Missing fields" });
+	}
+
+	const salt = bcrypt.genSaltSync(15);
+	const hash = bcrypt.hashSync(password, salt);
+	db.run(
+		"INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+		[username, email, hash],
+		function (err) {
+			if (err) {
+				if (err.message.includes("UNIQUE")) {
+					return reply
+					.code(400)
+					.send({ error: "Username or email already taken" });
+				}
+				return reply.code(500).send({ error: err.message });
+			}
+			reply.send({ id: this.lastID, username, email });
+		}
+	);
+});
+
+fastify.post("/api/login", (request, reply) => {
+	const { username, password } = request.body;
+
+	if (!username || !password) {
+		return reply.code(400).send({ error: "Missing fields" });
+	}
+
+	db.get(
+		"SELECT * FROM users WHERE username = ?",
+		[username],
+		(err, user) => {
+			if (err) {
+				return reply.code(500).send({ error: err.message });
+			}
+			if (!user) {
+				return reply.code(400).send({ error: "Invalid credentials" });
+			}
+
+			const isValid = bcrypt.compareSync(password, user.password_hash);
+			if (!isValid) {
+				return reply.code(400).send({ error: "Invalid credentials" });
+			}
+
+			// We just return user info. In a real app, use sessions or JWTs.
+			reply.send({ id: user.id, username: user.username, email: user.email });
+		}
+	);
+});
+
 // Start the Fastify server on port 3000 hosting on all interfaces
 fastify.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
 	if (err) {
@@ -146,36 +202,4 @@ fastify.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
 		process.exit(1);
 	}
 	fastify.log.info("Backend running on port 3000");
-});
-
-fastify.post("/register", (request, reply) => {
-	const { username, email, password } = request.body;
-
-	if (!username || !email || !password) {
-		return reply.code(400).send({ error: "Missing fields" });
-	}
-
-	password = password + "A1b2C3d4!@#$"; // Simple salting, should be more complex in production
-	bcrypt.hash(password, 10, (err, hash) => { // I hope that bcrypt is allowed
-		if (err) {
-			return reply.code(500).send({ error: "Hashing failed" });
-		}
-
-		db.run(
-			"INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
-			[username, email, hash],
-			function (err) {
-				if (err) {
-					if (err.message.includes("UNIQUE")) {
-						return reply
-						.code(400)
-						.send({ error: "Username or email already taken" });
-					}
-					return reply.code(500).send({ error: err.message });
-				}
-
-				reply.send({ id: this.lastID, username, email });
-			}
-		);
-	});
 });
