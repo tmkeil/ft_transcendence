@@ -46,8 +46,8 @@ export class GameLogic {
 		//	Played by one peson and one AI
 		if (GameConfig.getOpponent == 'AI')
 		{
-			p1_spd = this.paddleLogic.aiPaddleControl(paddle1);
-			p2_spd = this.paddleLogic.aiPaddleControl(paddle2);
+			p1_spd = this.paddleLogic.aiPaddleControl(paddle1, GameConfig.getAiDifficulty);
+			p2_spd = this.paddleLogic.aiPaddleControl(paddle2, "MEDIUM");
 		}
 		
 		//	Played by one peson and one AI
@@ -87,9 +87,11 @@ export class GameLogic {
 		ball.position.z = Math.max(-GameConfig.FIELD_HEIGHT, Math.min(GameConfig.FIELD_HEIGHT, ball.position.z));
 		ball.speed.hspd = Math.max(-1.25, Math.min(1.25, ball.speed.hspd));
 		ball.speed.vspd = Math.max(-1.25, Math.min(1.25, ball.speed.vspd));
-		ball.position.x += ball.speed.hspd;
-		ball.position.z += ball.speed.vspd;
-		
+		ball.position.x += ball.speed.hspd * ball.spd_damp;
+		ball.position.z += ball.speed.vspd * ball.spd_damp;
+		if (ball.spd_damp < 1)
+			ball.spd_damp += 0.02;
+
 		//	Collision with left paddle
 		if (ball.position.x <= (paddle1.position.x - ball.speed.hspd))
 		{
@@ -150,10 +152,15 @@ export class GameLogic {
 		//	Reset Ball position to origin
 		ball.position.x = 0;
 		ball.position.z = 0;
+		ball.spd_damp = 0;
 
 		//	Randomize direction for next serve
 		ball.speed.hspd *= Math.random() < 0.5 ? 1 : -1;
 		ball.speed.vspd *= Math.random() < 0.5 ? 1 : -1;
+
+		//	Reset paddle AI cooldowns
+		this.paddleLogic.lastPredictionTime[0] = 0;
+		this.paddleLogic.lastPredictionTime[1] = 0;
 
 		//	Pause game after score
 		// this.gameStatus.playing = false;
@@ -171,7 +178,7 @@ export class GameLogic {
 			return;
 
 		//	Set shake values
-		const	shakeMagnitude = (force * 0.04) + Math.random() * force * 0.02;
+		const	shakeMagnitude = (force * 0.02) + Math.random() * force * 0.01;
 		const	shakeDuration = 500;	//in milliseconds
 		const	startTime = performance.now();
 

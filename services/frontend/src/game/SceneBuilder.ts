@@ -94,6 +94,7 @@ export class SceneBuilder {
 		}, scene);
 		scene.ball = Object.assign(ballMesh, {
 			speed: GameConfig.ballSpeed,
+			spd_damp: 0
 		}) as BallMesh;
 
 		// Left Paddle

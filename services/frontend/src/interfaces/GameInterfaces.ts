@@ -17,6 +17,7 @@ export interface Speed {
 //	Ball Info
 export interface BallMesh extends BABYLON.Mesh {
 	speed:		Speed;
+	spd_damp:	number;
 }
 
 //	Paddle Info

@@ -7,7 +7,7 @@ export class PaddleLogic {
 	private	gameStatus : GameStatus;
 	private	gameLogic !: GameLogic;
 	private	keys : {[key : string] : boolean};
-	private	lastPredictionTime: number[] = [0, 0];
+	public	lastPredictionTime: number[] = [0, 0];
 	private	paddle_goal_pos: number[] = [0, 0];
 
 	constructor (scene : GameScene, gameStatus : GameStatus, keys : { [key : string] : boolean }){
@@ -68,7 +68,7 @@ export class PaddleLogic {
 
 
 	//	AI controls paddle
-	public aiPaddleControl(paddle: PaddleMesh) : number {
+	public aiPaddleControl(paddle: PaddleMesh, ai_level: string) : number {
 		const	ball = this.scene.ball;
 		const	paddleSpeed = GameConfig.paddleSpeed;
 		const	paddle_side = (paddle.position.x < 0) ? 0 : 1;
@@ -76,7 +76,6 @@ export class PaddleLogic {
 		//	Update AI's view of the field once per second
 		if (performance.now() - this.lastPredictionTime[paddle_side] > 1000)
 		{
-			console.log("Updated!");
 			//	Update the to new prediction time
 			this.lastPredictionTime[paddle_side] = performance.now();
 
@@ -94,16 +93,17 @@ export class PaddleLogic {
 			let	ball_zz = ball.position.z;
 			let	ball_hh = ball.speed.hspd;
 			let	ball_vv = ball.speed.vspd;
+			let	ball_damp = ball.spd_damp;
 	
 			//	Cut prediction path short
-			if (GameConfig.getAiDifficulty == 'EASY')
-				failsafe /= 3;
+			if (ai_level == 'EASY')
+				failsafe /= 4.5;
 	
 			//	Offset ball direciton a bit to make it less accurate on MEDIUM difficulty
-			if (GameConfig.getAiDifficulty == 'MEDIUM')
+			if (ai_level == 'MEDIUM')
 			{
-				ball.speed.hspd += 0.05 - (Math.random() * 0.1);
-				ball.speed.vspd += 0.05 - (Math.random() * 0.1);
+				ball.speed.hspd += 0.15 - (Math.random() * 0.3);
+				ball.speed.vspd += 0.15 - (Math.random() * 0.3);
 			}
 	
 			//	Simulate ball movement
@@ -130,6 +130,7 @@ export class PaddleLogic {
 			this.scene.ball.position.z = ball_zz;
 			this.scene.ball.speed.hspd = ball_hh;
 			this.scene.ball.speed.vspd = ball_vv;
+			this.scene.ball.spd_damp = ball_damp;
 		}
 	
 		//	Return direction for paddle to move
