@@ -75,9 +75,20 @@ export class PaddleLogic {
 	
 		//	Update AI's view of the field once per second
 		if (performance.now() - this.lastPredictionTime[paddle_side] > 1000)
-		/*&& ((paddle_side == 0 && this.scene.ball.speed.hspd < 0)
-		|| (paddle_side == 1 && this.scene.ball.speed.hspd > 0)))*/
 		{
+			console.log("Updated!");
+			//	Update the to new prediction time
+			this.lastPredictionTime[paddle_side] = performance.now();
+
+			//	Move to middle
+			if ((paddle_side == 0 && ball.speed.hspd > 0)
+			|| (paddle_side == 1 && ball.speed.hspd < 0))
+			{
+				this.paddle_goal_pos[paddle_side] = 0;
+				return (Math.sign(0 - paddle.position.z) * paddleSpeed);
+			}
+
+			//	Prediction variables
 			let	failsafe = GameConfig.FIELD_WIDTH * 1.5;
 			let	ball_xx = ball.position.x;
 			let	ball_zz = ball.position.z;
@@ -119,9 +130,6 @@ export class PaddleLogic {
 			this.scene.ball.position.z = ball_zz;
 			this.scene.ball.speed.hspd = ball_hh;
 			this.scene.ball.speed.vspd = ball_vv;
-	
-			//	Update the to new prediction time
-			this.lastPredictionTime[paddle_side] = performance.now();
 		}
 	
 		//	Return direction for paddle to move
