@@ -13,11 +13,23 @@
 	<canvas id="gameCanvas"></canvas>
 	<button id="startButton">Start Game</button>
 
-	<h2>Login or Register</h2>
-	<form id="addUserForm">
-		<input type="text" id="userName" placeholder="Enter name" required />
-		<button type="submit">Register</button>
-	</form>
+	<h2>Account</h2>
+	<button id="accountButton">Login / Register</button>
+
+	<!-- Modal Popup -->
+	<div id="accountModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5);">
+		<div style="background:#fff; margin:10% auto; padding:20px; width:300px; border-radius:8px; position:relative;">
+			<button id="closeModal" style="position:absolute; top:10px; right:10px;">X</button>
+			<h3 id="modalTitle">Login</h3>
+			<form id="accountForm">
+				<input type="text" id="modalUsername" placeholder="Username" required /><br/>
+				<input type="password" id="modalPassword" placeholder="Password" required /><br/>
+				<button type="submit" id="loginBtn">Login</button>
+				<button type="button" id="switchToRegister">Register</button>
+			</form>
+			<div id="modalError" style="color:red; margin-top:10px;"></div>
+		</div>
+	</div>
 
 	<div id="chat">
 		<textarea id="log" cols="50" rows="10" readonly></textarea><br />
@@ -28,5 +40,60 @@
 	<script type="module" src="/db_web_api.js"></script>
 	<script type="module" src="main.js"></script>
 </body>
+
+
+<script type="module">
+	import { UserManager } from '../src/managers/UserManager.js';
+
+	const userManager = new UserManager();
+
+	const accountButton = document.getElementById('accountButton');
+	const accountModal = document.getElementById('accountModal');
+	const closeModal = document.getElementById('closeModal');
+	const modalTitle = document.getElementById('modalTitle');
+	const accountForm = document.getElementById('accountForm');
+	const loginBtn = document.getElementById('loginBtn');
+	const switchToRegister = document.getElementById('switchToRegister');
+	const modalError = document.getElementById('modalError');
+
+	let isLogin = true;
+
+	accountButton.onclick = () => {
+		accountModal.style.display = 'block';
+		modalTitle.textContent = 'Login';
+		loginBtn.textContent = 'Login';
+		isLogin = true;
+		modalError.textContent = '';
+	};
+
+	closeModal.onclick = () => {
+		accountModal.style.display = 'none';
+	};
+
+	switchToRegister.onclick = () => {
+		isLogin = !isLogin;
+		modalTitle.textContent = isLogin ? 'Login' : 'Register';
+		loginBtn.textContent = isLogin ? 'Login' : 'Register';
+		modalError.textContent = '';
+	};
+
+	accountForm.onsubmit = async (e) => {
+		e.preventDefault();
+		const username = document.getElementById('modalUsername').value;
+		const password = document.getElementById('modalPassword').value;
+		let success = false;
+		if (isLogin) {
+			success = await userManager.login(username, password);
+		} else {
+			success = await userManager.register(username, password);
+		}
+		if (success) {
+			accountModal.style.display = 'none';
+			alert('Success!');
+		} else {
+			modalError.textContent = 'Failed. Please check your credentials or try again.';
+		}
+	};
+</script>
 
 </html>
