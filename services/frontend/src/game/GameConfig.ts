@@ -7,7 +7,7 @@ export class GameConfig {
 	public static readonly	PADDLE_ACC = 0.2;
 
 	private static settings: GameSettings = {
-		ai_difficulty:	'EASY',
+		ai_difficulty:	'MEDIUM',
 		opponent:		'AI'
 	};
 

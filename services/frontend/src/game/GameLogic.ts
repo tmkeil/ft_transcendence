@@ -46,8 +46,8 @@ export class GameLogic {
 		//	Played by one peson and one AI
 		if (GameConfig.getOpponent == 'AI')
 		{
-			p1_spd = this.paddleLogic.aiPaddleControl(paddle1, GameConfig.getAiDifficulty);
-			p2_spd = this.paddleLogic.aiPaddleControl(paddle2, "MEDIUM");
+			p1_spd = this.paddleLogic.aiPaddleControl(paddle1, "HARD");
+			p2_spd = this.paddleLogic.aiPaddleControl(paddle2, "HARD");
 		}
 		
 		//	Played by one peson and one AI
@@ -90,7 +90,7 @@ export class GameLogic {
 		ball.position.x += ball.speed.hspd * ball.spd_damp;
 		ball.position.z += ball.speed.vspd * ball.spd_damp;
 		if (ball.spd_damp < 1)
-			ball.spd_damp += 0.02;
+			ball.spd_damp += 0.01;
 
 		//	Collision with left paddle
 		if (ball.position.x <= (paddle1.position.x - ball.speed.hspd))
