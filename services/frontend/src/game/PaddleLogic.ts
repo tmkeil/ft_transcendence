@@ -1,6 +1,7 @@
-import { GameConfig, WorldConfig } from "./GameConfig.js";
 import { GameLogic } from "./GameLogic.js";
 import { GameScene, GameStatus, BallMesh, PaddleMesh } from "../interfaces/GameInterfaces.js";
+import { Derived } from "@app/shared";
+import { Settings } from "./GameSettings.js";
 
 export class PaddleLogic {
 	private scene: GameScene;
@@ -9,6 +10,7 @@ export class PaddleLogic {
 	private keys: { [key: string]: boolean };
 	private lastPredictionTime: number[] = [0, 0];
 	private paddle_goal_pos: number[] = [0, 0];
+	private conf!: Readonly<Derived>;
 
 	constructor(scene: GameScene, gameStatus: GameStatus, keys: { [key: string]: boolean }) {
 		this.scene = scene;
@@ -16,12 +18,12 @@ export class PaddleLogic {
 		this.keys = keys;
 	}
 
-	private get conf(): WorldConfig {
-		return GameConfig.getConfig();
-	}
-
 	public setGameLogic(gameLogic: GameLogic): void {
 		this.gameLogic = gameLogic;
+	}
+
+	public setConfig(conf: Readonly<Derived>) {
+		this.conf = conf;
 	}
 
 	public setScene(scene: GameScene): void {
@@ -31,7 +33,7 @@ export class PaddleLogic {
 	//	Player controls left (W:S) or right (Up:Down) paddle
 	public playerPaddleControl(paddle: PaddleMesh): number {
 		let move_dir = 0;
-		const paddleSpeed = GameConfig.paddleSpeed;
+		const paddleSpeed = this.conf.paddleSpeed;
 
 		//	Left paddle
 		if (paddle.position.x < 0) {
@@ -57,7 +59,7 @@ export class PaddleLogic {
 	//	Player conrrols paddle (W:S / Up:Down)
 	public dualPaddleControl(paddle: PaddleMesh): number {
 		let move_dir = 0;
-		const paddleSpeed = GameConfig.paddleSpeed;
+		const paddleSpeed = this.conf.paddleSpeed;
 
 		//	Move paddle
 		if (this.keys["w"] || this.keys["W"]
@@ -75,7 +77,7 @@ export class PaddleLogic {
 	//	AI controls paddle
 	public aiPaddleControl(paddle: PaddleMesh): number {
 		const ball = this.scene.ball;
-		const paddleSpeed = GameConfig.paddleSpeed;
+		const paddleSpeed = this.conf.paddleSpeed;
 		const paddle_side = (paddle.position.x < 0) ? 0 : 1;
 
 		//	Update AI's view of the field once per second
@@ -89,11 +91,11 @@ export class PaddleLogic {
 			let ball_vv = ball.speed.vspd;
 
 			//	Cut prediction path short
-			if (GameConfig.getAiDifficulty == 'EASY')
+			if (Settings.getAiDifficulty == 'EASY')
 				failsafe /= 3;
 
 			//	Offset ball direciton a bit to make it less accurate on MEDIUM difficulty
-			if (GameConfig.getAiDifficulty == 'MEDIUM') {
+			if (Settings.getAiDifficulty == 'MEDIUM') {
 				ball.speed.hspd += 0.05 - (Math.random() * 0.1);
 				ball.speed.vspd += 0.05 - (Math.random() * 0.1);
 			}
@@ -124,7 +126,7 @@ export class PaddleLogic {
 		}
 
 		//	Return direction for paddle to move
-		if (Math.abs(this.paddle_goal_pos[paddle_side] - paddle.position.z) > GameConfig.paddleSpeed / 2)
+		if (Math.abs(this.paddle_goal_pos[paddle_side] - paddle.position.z) > this.conf.paddleSpeed / 2)
 			return (Math.sign(this.paddle_goal_pos[paddle_side] - paddle.position.z) * paddleSpeed);
 
 		//	Paddle is close to goal, don't move

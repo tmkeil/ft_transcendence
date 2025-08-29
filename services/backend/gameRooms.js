@@ -1,3 +1,5 @@
+import { buildWorld } from "@app/shared";
+
 export const rooms = new Map();
 
 //   p1Y: number,
@@ -17,6 +19,8 @@ export class Room {
     this.ballV = this.resetBall();
     this.loopInterval = null;
     this.inputs = { left: 0, right: 0 };
+    this.config = buildWorld();
+    // As optional parameters to override the default values e.g. buildWorld({ FIELD_WIDTH: 120, FIELD_HEIGHT: 50 })
   }
 
   initState() {

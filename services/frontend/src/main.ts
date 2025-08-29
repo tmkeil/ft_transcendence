@@ -6,7 +6,7 @@ import { GameManager } from './managers/index.js';
 import { InputHandler } from './managers/index.js';
 import { RemotePlayerManager } from './managers/index.js';
 import { ServerState } from './interfaces/GameInterfaces';
-import { WorldConfig } from './game/GameConfig.js';
+import { WorldConfig, Derived, buildWorld } from '@app/shared';
 
 class Chat {
     private form;
@@ -153,7 +153,8 @@ export class App {
 			this.gameManager.applyServerState(state);
 		});
 
-		this.playerManager.onJoin((msg: { side: string; gameConfig: WorldConfig | null; state: ServerState }) => {
+		// Bind the game config and state to the game manager
+		this.playerManager.onJoin((msg: { side: string; gameConfig: Derived; state: ServerState }) => {
 			this.gameManager.setConfig(msg.gameConfig);
 			this.gameManager.applyServerState(msg.state);
 			this.Chat.append_log(`Joined the game as Player ${msg.side === "left" ? '1 (left)' : '2 (right)'}!`);

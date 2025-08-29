@@ -1,13 +1,11 @@
 import { ServerState } from '../interfaces/GameInterfaces';
-import { GameConfig, WorldConfig } from '../game/GameConfig';
+import { Derived, WorldConfig } from '@app/shared';
 
 type ServerMsg =
 	| { type: 'chat'; userId: number; content: string; }
 	| { type: 'state'; state: ServerState; }
-	| { type: 'join'; side: string; gameConfig: WorldConfig | null; state: ServerState; }
+	| { type: 'join'; side: string; gameConfig: Derived; state: ServerState; }
 	| { type: 'start'; timestamp: Number; }
-
-// ({ type: "start", timestamp: room.state.timestamp }));
 
 export class RemotePlayerManager {
 	private queue: unknown[] = [];
@@ -20,7 +18,8 @@ export class RemotePlayerManager {
 	private stateHandler?: (s: ServerState) => void;
 	// Binding callbacks to chat events
 	private chatHandler?: (msg: { userId: number; content: string }) => void;
-	private joinHandler?: (msg: { side: string; gameConfig: WorldConfig | null; state: ServerState }) => void;
+	// ; gameConfig: WorldConfig
+	private joinHandler?: (msg: { side: string; gameConfig: Derived; state: ServerState }) => void;
 	private startHandler?: (timestamp: Number) => void;
 
 	constructor(id: number) {
@@ -66,6 +65,7 @@ export class RemotePlayerManager {
 					break;
 				case 'join':
 					console.log(`Joined game, initial state received from the server`);
+					// , gameConfig: msg.gameConfig
 					this.joinHandler?.({ side: msg.side, gameConfig: msg.gameConfig, state: msg.state });
 					break;
 				case 'start':
@@ -110,7 +110,8 @@ export class RemotePlayerManager {
 		this.chatHandler = callback;
 	}
 
-	public onJoin(callback: (msg: { side: string; gameConfig: WorldConfig | null; state: ServerState }) => void): void {
+	// ; gameConfig: WorldConfig
+	public onJoin(callback: (msg: { side: string; gameConfig: Derived; state: ServerState }) => void): void {
 		this.joinHandler = callback;
 	}
 

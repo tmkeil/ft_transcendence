@@ -1,12 +1,11 @@
 import { GameStatus, GameScene, ServerState } from "../interfaces/GameInterfaces.js";
 import {
-	GameConfig,
 	GameLogic,
 	PaddleLogic,
 	SceneBuilder,
-	WorldConfig,
 } from "../game/index.js";
 import { InputHandler } from "./InputHandler.js";
+import { Derived, WorldConfig, buildWorld } from '@app/shared';
 
 export class GameManager {
 	private gameStatus!: GameStatus;
@@ -15,39 +14,26 @@ export class GameManager {
 	private sceneBuilder!: SceneBuilder;
 	private scene!: GameScene;
 	private paddleLogic!: PaddleLogic;
-	private conf: WorldConfig | null = null;
-
-	//   p1Y: number,
-	//   p2Y: number,
-	//   ballX: number,
-	//   ballY: number,
-	//   scoreL: number,
-	//   scoreR: number,
-	//   started: boolean,
+	private conf!: Readonly<Derived>;
 
 	constructor() {
 		this.initialize();
 	}
 
-	// private defaultConfig(): WorldConfig {
-	// 	return {
-	// 		FIELD_WIDTH: GameConfig.FIELD_WIDTH,
-	// 		FIELD_HEIGHT: GameConfig.FIELD_HEIGHT,
-	// 		PADDLE_RATIO: GameConfig.PADDLE_RATIO,
-	// 		PADDLE_ACC: GameConfig.PADDLE_ACC,
-	// 	}
-	// };
-
 	public async initialize() {
 		// Initialize the game status by fetching the initial state from the server to ensure that the game state is consistent between server and client
 		this.gameStatus = {
-			p1Score: 0,
-			p2Score: 0,
+			scoreL: 0,
+			scoreR: 0,
 			running: true,
 			playing: false,
 			timestamp: null,
+			p1Y: 0,
+			p2Y: 0,
+			ballX: 0,
+			ballY: 0,
 		};
-		this.conf = GameConfig.getConfig();
+		this.conf = buildWorld();
 		// Initialize the input handler to manage user inputs. It listens for user actions and updates the given status object accordingly
 		// The input handler is also responsible for sending input data to the server in case of remote
 		this.inputHandler = new InputHandler(this.gameStatus);
@@ -144,19 +130,6 @@ export class GameManager {
 		this.gameStatus.running = false;
 	}
 
-	//   initState() {
-	//     return {
-	//       p1Y: 0,
-	//       p2Y: 0,
-	//       ballX: 0,
-	//       ballY: 0,
-	//       scoreL: 0,
-	//       scoreR: 0,
-	//       started: false,
-	//       timestamp: null
-	//     };
-	//   }
-
 	// Function which is triggered, when the server sends a state update (in case of remote players)
 	public applyServerState(s: ServerState): void {
 		// console.log("Applying server state:", s);
@@ -164,45 +137,43 @@ export class GameManager {
 		this.scene.paddle2.position.z = s.p2Y;
 		this.scene.ball.position.x = s.ballX;
 		this.scene.ball.position.z = s.ballY;
-		this.gameStatus.p1Score = s.scoreL;
-		this.gameStatus.p2Score = s.scoreR;
+
+		// Update the game status scores and playing state
+		this.gameStatus.scoreL = s.scoreL;
+		this.gameStatus.scoreR = s.scoreR;
 		this.gameStatus.playing = s.started;
+		this.gameStatus.ballX = s.ballX;
+		this.gameStatus.ballY = s.ballY;
+		this.gameStatus.p1Y = s.p1Y;
+		this.gameStatus.p2Y = s.p2Y;
 	}
 
 	public getInputHandler(): InputHandler {
 		return this.inputHandler;
 	}
 
-	public setConfig(config: WorldConfig | null) {
+	public setConfig(config: Readonly<Derived>): void {
 		console.log("Trying to set new game config:", config);
 		if (!config) return;
 
-		GameConfig.setConfig(config);
 		this.conf = config;
-		console.log("Updated game config:", this.conf);
-		console.log("FIELD_WIDTH:", this.conf.FIELD_WIDTH);
-		console.log("FIELD_HEIGHT:", this.conf.FIELD_HEIGHT);
-		console.log("PADDLE_RATIO:", this.conf.PADDLE_RATIO);
-		console.log("PADDLE_ACC:", this.conf.PADDLE_ACC);
 		this.scene = this.sceneBuilder.rebuild(this.conf);
 		this.gameLogic.setScene(this.scene);
+		this.gameLogic.setConfig(this.conf);
 		this.paddleLogic.setScene(this.scene);
+		this.paddleLogic.setConfig(this.conf);
 	}
 
-	public setTimestamp(timestamp: Number) {
+	// If its not a remote player, game config will be set locally
+	public setLocalConfig(overrides?: Partial<WorldConfig>): void {
+		const conf = buildWorld(overrides);
+		this.setConfig(conf);
+	}
+
+	// If the server sent a start signal, the timestamp will be set in the game status
+	public setTimestamp(timestamp: Number): void {
 		// The timestamp can be used for synchronizing the game start between multiple clients
 		console.log("Game started at:", timestamp);
 		this.gameStatus.timestamp = timestamp;
 	}
 }
-
-// export interface ServerState {
-// 	p1Y: number;
-// 	p2Y: number;
-// 	ballX: number;
-// 	ballY: number;
-// 	scoreL: number;
-// 	scoreR: number;
-// 	started: boolean;
-// 	timestamp: number | null;
-// }

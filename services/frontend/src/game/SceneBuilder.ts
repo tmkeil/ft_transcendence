@@ -1,15 +1,14 @@
 import { BallMesh, GameScene, PaddleMesh, } from '../interfaces/GameInterfaces.js';
-
-import { GameConfig, WorldConfig } from './GameConfig.js';
+import { Derived } from '@app/shared';
 
 //	import * as BABYLON from 'babylonjs';
 
 export class SceneBuilder {
-	private conf: WorldConfig;
+	private conf: Readonly<Derived>;
 	private canvas: HTMLCanvasElement;
 	private engine: BABYLON.Engine;
 
-	constructor(canvasId: string, private cfg: WorldConfig) {
+	constructor(canvasId: string, private cfg: Readonly<Derived>) {
 		this.conf = cfg;
 		const canvasElement =
 			document.getElementById(canvasId) as HTMLCanvasElement | null;
@@ -18,11 +17,11 @@ export class SceneBuilder {
 		this.engine = new BABYLON.Engine(this.canvas, true);
 	}
 
-	public setConfig(conf: WorldConfig) {
+	public setConfig(conf: Readonly<Derived>) {
 		this.conf = conf;
 	}
 
-	public rebuild(conf: WorldConfig): GameScene {
+	public rebuild(conf: Readonly<Derived>): GameScene {
 		this.conf = conf;
 		if (this.engine.scenes.length) this.engine.scenes[0].dispose();
 		return this.createScene();

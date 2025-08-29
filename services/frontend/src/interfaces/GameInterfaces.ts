@@ -23,9 +23,13 @@ export interface ServerState {
 	timestamp: Number | null;
 }
 
-export interface GameStatus {
-	p1Score:	number,
-	p2Score:	number,
+export interface GameStatus extends BABYLON.Scene {
+	p1Y:	number,
+	p2Y:	number,
+	ballX:	number,
+	ballY:	number,
+	scoreL:	number,
+	scoreR:	number,
 	running:	boolean,
 	playing:	boolean,
 	timestamp: Number | null;

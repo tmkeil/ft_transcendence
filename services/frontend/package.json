@@ -13,5 +13,8 @@
     "@types/babylonjs": "^2.4.5",
     "vite": "^5.4.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "babylonjs": "^8.18.0",
+    "@app/shared": "*"
+  }
 }
