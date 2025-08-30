@@ -1,22 +1,14 @@
-import { buildWorld } from "@app/shared";
+import { buildWorld, resetBall } from "@app/shared";
 
 export const rooms = new Map();
-
-//   p1Y: number,
-//   p2Y: number,
-//   ballX: number,
-//   ballY: number,
-//   scoreL: number,
-//   scoreR: number,
-//   started: boolean,
-//   timestamp: Date
 
 export class Room {
   constructor(id) {
     this.id = id;
     this.players = new Map();
     this.state = this.initState();
-    this.ballV = this.resetBall();
+    this.tempState = { p1Y: 0, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
+    this.ballV = resetBall();
     this.loopInterval = null;
     this.inputs = { left: 0, right: 0 };
     this.config = buildWorld();
@@ -34,12 +26,6 @@ export class Room {
       started: false,
       timestamp: null
     };
-  }
-
-  resetBall() {
-    const hspd = Math.random() < 0.5 ? 0.5 : -0.5;
-    const vspd = Math.random() < 0.5 ? 0.5 : -0.5;
-    return ({ hspd: hspd, vspd: vspd });
   }
 
   addPlayer(userId, ws) {

@@ -10,6 +10,7 @@ export class GameLogic {
 	private conf!: Readonly<Derived>;
 	private paddleLogic !: PaddleLogic;
 	private ballV = { hspd: 0, vspd: 0 };
+	private tempState = { p1Y: 0, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
 	//private shakeTimeout: number | null = null;
 
 	constructor(scene: GameScene, gameStatus: GameStatus, keys: Record<string, boolean>) {
@@ -31,34 +32,41 @@ export class GameLogic {
 	}
 
 	public update(): void {
+		// If the opponent is remote, the paddles/ball are getting updated via applyServerState()
 		if (Settings.getOpponent === 'REMOTE')
 		{
 			this.updateScores();
 			return;
 		}
+
+		// If the game is played locally and the Opponent is an AI => control p1 by dualPaddleControl
+		// If the game is played locally and the Opponent is a Person => control p1 by playerPaddleControl
 		const p1 = Settings.getOpponent === 'AI' ?
 			this.paddleLogic.dualPaddleControl(this.scene.paddle1) :
 			this.paddleLogic.playerPaddleControl(this.scene.paddle1);
 
-		const p2 = Settings.getOpponent === 'AI' ?
-			this.paddleLogic.aiPaddleControl(this.scene.paddle2) :
-			this.paddleLogic.playerPaddleControl(this.scene.paddle2);
+		// If the game is played locally and the Opponent is an AI => control p2 by aiPaddleControl
+		// If the game is played locally and the Opponent is a Person => control p2 by playerPaddleControl
+		// const p2 = Settings.getOpponent === 'AI' ?
+		// 	this.paddleLogic.aiPaddleControl(this.scene.paddle2) :
+		// 	this.paddleLogic.playerPaddleControl(this.scene.paddle2);
+		const p2 = 0;
 
 		const inputs = {
-			left: p1 > 0 ? 1 : (p1 < 0 ? -1 : 0),
-			right: p2 > 0 ? 1 : (p2 < 0 ? -1 : 0)
-		}
+			left: p1,
+			right: p2
+		};
 
-		movePaddles(this.gameStatus, inputs, this.conf);
-		moveBall(this.gameStatus, this.ballV, this.conf);
+		movePaddles(this.tempState, inputs, this.conf);
+		moveBall(this.tempState, this.ballV, this.conf);
 
-		this.scene.paddle1.position.z = this.gameStatus.p1Y;
-		this.scene.paddle2.position.z = this.gameStatus.p2Y;
-		this.scene.ball.position.x = this.gameStatus.ballX;
-		this.scene.ball.position.z = this.gameStatus.ballY;
+		this.scene.paddle1.position.z = this.tempState.p1Y;
+		this.scene.paddle2.position.z = this.tempState.p2Y;
+		this.scene.ball.position.x = this.tempState.ballX;
+		this.scene.ball.position.z = this.tempState.ballY;
 
-		this.gameStatus.scoreL = this.gameStatus.scoreL;
-		this.gameStatus.scoreR = this.gameStatus.scoreR;
+		this.gameStatus.scoreL = this.tempState.scoreL;
+		this.gameStatus.scoreR = this.tempState.scoreR;
 
 		this.updateScores();
 	}

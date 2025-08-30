@@ -5,7 +5,7 @@ import websocket from "@fastify/websocket";
 import { getOrCreateRoom, rooms } from "./gameRooms.js";
 import { initDb } from "./initDatabases.js";
 import { broadcaster } from "./utils.js";
-import { buildWorld, Derived, movePaddles } from "@app/shared";
+import { buildWorld, movePaddles, moveBall } from "@app/shared";
 // import * as Shared from "@app/shared";
 // or import specific identifiers, e.g.:
 // import { Config } from "@app/shared";
@@ -26,23 +26,6 @@ await fastify.register(websocket);
 // Call the initDb function to create the tables by the time the server starts
 initDb(db);
 
-    // static readonly WORLD_WIDTH = 800;
-    // static readonly WORLD_HEIGHT = 600;
-    // static readonly PADDLE_WIDTH = 20;
-    // static readonly PADDLE_HEIGHT = 100;
-    // static readonly BALL_SIZE = 20;
-    // static readonly PADDLE_SPEED = 10;
-    // static readonly BALL_SPEED = 5;
-// fastify.get("/users", (request, reply) => {
-//   db.all("SELECT * FROM users", [], (err, rows) => {
-//     if (err) {
-//       reply.code(500).send({ error: err.message });
-//     } else {
-//       reply.send(rows);
-//     }
-//   });
-// });
-
 // Test for adding a user via POST request to the database
 fastify.post("/users", (request, reply) => {
   const { name } = request.body;
@@ -58,19 +41,6 @@ fastify.post("/users", (request, reply) => {
     }
   });
 });
-
-// fastify.get("/initState", (request, reply) => {
-//   const initialState = {
-//     p1Y: 0,
-//     p2Y: 0,
-//     ballX: 0,
-//     ballY: 0,
-//     scoreL: 0,
-//     scoreR: 0,
-//     started: false,
-//   };
-//   reply.send(initialState);
-// });
 
 // Database inspection endpoint
 // fastify.get("/db/info", (request, reply) => {
@@ -190,63 +160,15 @@ export function stopRoom(room, roomId) {
 export function loop(room) {
 
   const config = room.config;
-  // Update paddles based on input
-  movePaddles(room, config);
-  if (room.inputs.left !== 0) {
-    room.state.p1Y += room.inputs.left * config.paddleSpeed;
-  }
-  if (room.inputs.right !== 0) {
-    room.state.p2Y += room.inputs.right * config.paddleSpeed;
-  }
-  room.state.p1Y = Math.max(-config.FIELD_HEIGHT / 2 + config.paddleSize / 2,
-    Math.min(config.FIELD_HEIGHT / 2 - config.paddleSize / 2, room.state.p1Y));
-  room.state.p2Y = Math.max(-config.FIELD_HEIGHT / 2 + config.paddleSize / 2,
-    Math.min(config.FIELD_HEIGHT / 2 - config.paddleSize / 2, room.state.p2Y));
+  movePaddles(room.tempState, room.inputs, config);
+  moveBall(room.tempState, room.ballV, config);
 
-  // console.log("Game loop tick for room", room.id);
-  // Update the ball position. New position += speed / framerate (speed is 50 for now) / framerate (33ms for now)
-  config.FIELD_HEIGHT;
-  room.state.ballX = Math.max(-config.FIELD_WIDTH / 2, Math.min(config.FIELD_WIDTH / 2, room.state.ballX));
-  room.state.ballY = Math.max(-config.FIELD_HEIGHT / 2, Math.min(config.FIELD_HEIGHT / 2, room.state.ballY));
-  // room.ballV.hspd = Math.max(-1.25, Math.min(1.25, room.ballV.hspd));
-  // room.ballV.vspd = Math.max(-1.25, Math.min(1.25, room.ballV.vspd));
-  room.state.ballX += room.ballV.hspd;
-  room.state.ballY += room.ballV.vspd;
-
-  // Check if there is a collision on the left paddle
-  if (room.state.ballX <= 4 - config.FIELD_WIDTH / 2) {
-    // Check if the ball is outside the paddle range => Goal for player 2
-    if (room.state.ballY < room.state.p1Y - config.paddleSize / 2 ||
-      room.state.ballY > room.state.p1Y + config.paddleSize / 2) {
-      room.state.scoreR += 1;
-      room.state.ballX = 0;
-      room.state.ballY = 0;
-      room.ballV = room.resetBall();
-    }
-    else {
-      // Hit the paddle, reflect the ball
-      room.ballV.hspd *= -1.1;
-    }
-  }
-  // Check if there is a collision on the right paddle
-  else if (room.state.ballX >= config.FIELD_WIDTH / 2 - 4) {
-    // Check if the ball is outside the paddle range => Goal for player 1
-    if (room.state.ballY < room.state.p2Y - config.paddleSize / 2 ||
-      room.state.ballY > room.state.p2Y + config.paddleSize / 2) {
-      room.state.scoreL += 1;
-      room.state.ballX = 0;
-      room.state.ballY = 0;
-      room.ballV = room.resetBall();
-    }
-    else {
-      // Hit the paddle, reflect the ball
-      room.ballV.hspd *= -1.1;
-    }
-  }
-  // Colission with top and bottom wall
-  if (room.state.ballY <= -config.FIELD_HEIGHT / 2 || room.state.ballY >= config.FIELD_HEIGHT / 2) {
-    room.ballV.vspd *= -1;
-  }
+  room.state.p1Y = room.tempState.p1Y;
+  room.state.p2Y = room.tempState.p2Y;
+  room.state.ballX = room.tempState.ballX;
+  room.state.ballY = room.tempState.ballY;
+  room.state.scoreL = room.tempState.scoreL;
+  room.state.scoreR = room.tempState.scoreR;
 
   // broadcast the new state to the players
   broadcaster(room.players.keys(), null, JSON.stringify({ type: "state", state: room.state }));
