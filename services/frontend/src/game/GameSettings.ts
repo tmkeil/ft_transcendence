@@ -1,25 +1,27 @@
 import { GameSettings } from "../interfaces/GameInterfaces.js";
 
 export class Settings {
+	private ai_difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+	private opponent: 'PERSON' | 'REMOTE' | 'AI';
 
-	private static settings: GameSettings = {
-		ai_difficulty:	'HARD',
-		opponent:		'REMOTE'
-	};
+	constructor() {
+		this.ai_difficulty = 'HARD';
+		this.opponent = 'REMOTE';
+	}
 
-	public static setAiDifficulty(difficulty: 'EASY' | 'MEDIUM' | 'HARD') {
-		this.settings.ai_difficulty = difficulty;
+	public setAiDifficulty(difficulty: 'EASY' | 'MEDIUM' | 'HARD') {
+		this.ai_difficulty = difficulty;
 	}
 	
-	public static get getAiDifficulty() {
-		return (this.settings.ai_difficulty);
+	public getAiDifficulty() {
+		return (this.ai_difficulty);
 	}
 
-	public static setOpponent(opponent: 'PERSON' | 'REMOTE' | 'AI') {
-		this.settings.opponent = opponent;
+	public setOpponent(opponent: 'PERSON' | 'REMOTE' | 'AI') {
+		this.opponent = opponent;
 	}
-	
-	public static get getOpponent() {
-		return (this.settings.opponent);
+
+	public getOpponent() {
+		return (this.opponent);
 	}
 }

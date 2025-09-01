@@ -1,7 +1,7 @@
 import { Settings } from "./GameSettings.js";
 import { PaddleLogic } from "./PaddleLogic.js";
 import { GameScene, GameStatus/*, BallMesh, PaddleMesh*/ } from "../interfaces/GameInterfaces.js";
-import { Derived, movePaddles, moveBall } from "@app/shared";
+import { Derived, movePaddles, moveBall, resetBall } from "@app/shared";
 
 export class GameLogic {
 	private scene: GameScene;
@@ -9,14 +9,16 @@ export class GameLogic {
 	private keys: { [key: string]: boolean };
 	private conf!: Readonly<Derived>;
 	private paddleLogic !: PaddleLogic;
-	private ballV = { hspd: 0, vspd: 0 };
+	private ballV = resetBall();
 	private tempState = { p1Y: 0, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
+	private settings: Settings;
 	//private shakeTimeout: number | null = null;
 
-	constructor(scene: GameScene, gameStatus: GameStatus, keys: Record<string, boolean>) {
+	constructor(scene: GameScene, gameStatus: GameStatus, keys: Record<string, boolean>, settings: Settings) {
 		this.scene = scene;
 		this.gameStatus = gameStatus;
 		this.keys = keys;
+		this.settings = settings;
 	}
 
 	public setScene(scene: GameScene): void {
@@ -33,32 +35,35 @@ export class GameLogic {
 
 	public update(): void {
 		// If the opponent is remote, the paddles/ball are getting updated via applyServerState()
-		if (Settings.getOpponent === 'REMOTE')
+		// console.log("Opponent is", this.settings.getOpponent());
+		if (this.settings.getOpponent() === 'REMOTE')
 		{
 			this.updateScores();
 			return;
 		}
 
+		// console.log("test");
+		// console.log(this.conf);
 		// If the game is played locally and the Opponent is an AI => control p1 by dualPaddleControl
 		// If the game is played locally and the Opponent is a Person => control p1 by playerPaddleControl
-		const p1 = Settings.getOpponent === 'AI' ?
+		const p1 = this.settings.getOpponent() === 'AI' ?
 			this.paddleLogic.dualPaddleControl(this.scene.paddle1) :
 			this.paddleLogic.playerPaddleControl(this.scene.paddle1);
 
 		// If the game is played locally and the Opponent is an AI => control p2 by aiPaddleControl
 		// If the game is played locally and the Opponent is a Person => control p2 by playerPaddleControl
-		// const p2 = Settings.getOpponent === 'AI' ?
-		// 	this.paddleLogic.aiPaddleControl(this.scene.paddle2) :
-		// 	this.paddleLogic.playerPaddleControl(this.scene.paddle2);
-		const p2 = 0;
-
+		// 
+		const p2 = this.settings.getOpponent() === 'AI' ?
+			this.paddleLogic.aiPaddleControl(this.tempState, this.ballV, this.conf, this.scene.paddle2) :
+			this.paddleLogic.playerPaddleControl(this.scene.paddle2);
 		const inputs = {
 			left: p1,
 			right: p2
 		};
 
 		movePaddles(this.tempState, inputs, this.conf);
-		moveBall(this.tempState, this.ballV, this.conf);
+		// console.log("Ball before move:", this.tempState.ballX, this.tempState.ballY);
+		moveBall(this.tempState, this.ballV, this.conf, true);
 
 		this.scene.paddle1.position.z = this.tempState.p1Y;
 		this.scene.paddle2.position.z = this.tempState.p2Y;

@@ -16,7 +16,7 @@ export declare function movePaddles(tempState: TmpState, inputs: {
 export declare function moveBall(tempState: TmpState, ballV: {
     hspd: number;
     vspd: number;
-}, conf: Readonly<Derived>): void;
+}, conf: Readonly<Derived>, realMode: boolean): void;
 export declare function resetBall(): {
     hspd: number;
     vspd: number;

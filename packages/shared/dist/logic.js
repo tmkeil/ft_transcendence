@@ -1,4 +1,5 @@
 export function movePaddles(tempState, inputs, conf) {
+    // console.log("Moving paddles with inputs:", inputs);
     const paddleSize = conf.paddleSize;
     const paddleSpeed = conf.paddleSpeed;
     const paddle_acc = conf.PADDLE_ACC;
@@ -14,7 +15,7 @@ export function movePaddles(tempState, inputs, conf) {
     tempState.p1Y = Math.max(-FIELD_HEIGHT / 2 + paddleSize / 2, Math.min(FIELD_HEIGHT / 2 - paddleSize / 2, tempState.p1Y));
     tempState.p2Y = Math.max(-FIELD_HEIGHT / 2 + paddleSize / 2, Math.min(FIELD_HEIGHT / 2 - paddleSize / 2, tempState.p2Y));
 }
-export function moveBall(tempState, ballV, conf) {
+export function moveBall(tempState, ballV, conf, realMode) {
     const FIELD_WIDTH = conf.FIELD_WIDTH;
     const FIELD_HEIGHT = conf.FIELD_HEIGHT;
     // Update ball position
@@ -79,6 +80,7 @@ export function moveBall(tempState, ballV, conf) {
     if (tempState.ballY <= -FIELD_HEIGHT / 2 || tempState.ballY >= FIELD_HEIGHT / 2) {
         ballV.vspd *= -1;
     }
+    console.log("Ball after move:", tempState.ballX, tempState.ballY);
 }
 // Reset the ball velocity to a random horizontal direction and a randomized angle between +45 and -45 on the x-axis
 // The total speed is constant ~0.3

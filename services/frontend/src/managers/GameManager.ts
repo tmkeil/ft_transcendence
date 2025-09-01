@@ -6,8 +6,15 @@ import {
 } from "../game/index.js";
 import { InputHandler } from "./InputHandler.js";
 import { Derived, WorldConfig, buildWorld } from '@app/shared';
+import { Settings } from "../game/GameSettings.js";
 
 export class GameManager {
+		// Opponent Selection Buttons
+		private aiOpponentButton;
+		private localOpponentButton;
+		private remoteOpponentButton;
+		private settings: Settings;
+
 	private gameStatus!: GameStatus;
 	private inputHandler!: InputHandler;
 	private gameLogic!: GameLogic;
@@ -17,7 +24,35 @@ export class GameManager {
 	private conf!: Readonly<Derived>;
 
 	constructor() {
+		this.settings = new Settings();
+		this.aiOpponentButton = document.getElementById('aiOpponentButton') as HTMLButtonElement;
+		this.localOpponentButton = document.getElementById('localOpponentButton') as HTMLButtonElement;
+		this.remoteOpponentButton = document.getElementById('remoteOpponentButton') as HTMLButtonElement;
 		this.initialize();
+
+			this.aiOpponentButton.addEventListener('click', () => {
+			console.log("AI Opponent button clicked");
+			// Set the opponent to AI in the game settings
+			this.settings.setOpponent('AI');
+			// Inform the input handler that it is not a remote game
+			this.inputHandler.setRemote(false);
+		});
+
+		this.localOpponentButton.addEventListener('click', () => {
+			console.log("Local Opponent button clicked");
+			// Set the opponent to PERSON in the game settings
+			this.settings.setOpponent('PERSON');
+			// Inform the input handler that it is not a remote game
+			this.inputHandler.setRemote(false);
+		});
+
+		this.remoteOpponentButton.addEventListener('click', () => {
+			console.log("Remote Opponent button clicked");
+			// Set the opponent to REMOTE in the game settings
+			this.settings.setOpponent('REMOTE');
+			// Inform the input handler that it is a remote game
+			this.inputHandler.setRemote(true);
+		});
 	}
 
 	public async initialize() {
@@ -50,7 +85,8 @@ export class GameManager {
 		this.gameLogic = new GameLogic(
 			this.scene,
 			this.gameStatus,
-			this.inputHandler.getKeys()
+			this.inputHandler.getKeys(),
+			this.settings
 		);
 
 		// Paddle logic in case of local players (move paddles based on user input or AI)
@@ -60,7 +96,8 @@ export class GameManager {
 		this.paddleLogic = new PaddleLogic(
 			this.scene,
 			this.gameStatus,
-			this.inputHandler.getKeys()
+			this.inputHandler.getKeys(),
+			this.settings
 		);
 
 		// Link the gamelogic to the paddlelogic to access the updateBall() function
@@ -107,6 +144,7 @@ export class GameManager {
 			// In case of a remote player, it is ready, if 2 joined the room and clicked on ready.
 			// update() handles the physics (paddles/ball) of non-remote players and Updates the score texture on the game map
 			// If its a remote player, the physics comes from the server.
+			// console.log("Game playing status:", this.gameStatus.playing);
 			if (this.gameStatus.playing) this.gameLogic.update();
 			// Here the scene will be rendered again
 			this.scene.render();

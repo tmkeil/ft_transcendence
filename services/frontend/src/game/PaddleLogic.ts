@@ -3,6 +3,17 @@ import { GameScene, GameStatus, BallMesh, PaddleMesh } from "../interfaces/GameI
 import { Derived, movePaddles, moveBall } from "@app/shared";
 import { Settings } from "./GameSettings.js";
 
+type TmpState = {
+	p1Y: number;
+	p2Y: number;
+	ballX: number;
+	ballY: number;
+	scoreL: number;
+	scoreR: number;
+	p1_spd: number;
+	p2_spd: number;
+}
+
 export class PaddleLogic {
 	private scene: GameScene;
 	private gameStatus: GameStatus;
@@ -11,11 +22,13 @@ export class PaddleLogic {
 	private lastPredictionTime: number[] = [0, 0];
 	private paddle_goal_pos: number[] = [0, 0];
 	private conf!: Readonly<Derived>;
+	private settings: Settings;
 
-	constructor(scene: GameScene, gameStatus: GameStatus, keys: { [key: string]: boolean }) {
+	constructor(scene: GameScene, gameStatus: GameStatus, keys: { [key: string]: boolean }, settings: Settings) {
 		this.scene = scene;
 		this.gameStatus = gameStatus;
 		this.keys = keys;
+		this.settings = settings;
 	}
 
 	public setGameLogic(gameLogic: GameLogic): void {
@@ -32,6 +45,7 @@ export class PaddleLogic {
 
 	//	Player controls left (W:S) or right (Up:Down) paddle
 	public playerPaddleControl(paddle: PaddleMesh): number {
+		// console.log("Player controlling paddle");
 		let move_dir = 0;
 
 		//	Left paddle
@@ -55,8 +69,9 @@ export class PaddleLogic {
 	}
 
 
-	//	Player conrrols paddle (W:S / Up:Down)
+	//	Player controls paddle (W:S / Up:Down)
 	public dualPaddleControl(paddle: PaddleMesh): number {
+		// console.log("Dual controlling paddle");
 		let move_dir = 0;
 
 		//	Move paddle
@@ -71,9 +86,54 @@ export class PaddleLogic {
 		return (move_dir);
 	}
 
+// // Predicts the Z position of the ball when it reaches a given X coordinate
+// public static predictBallZAtX(
+// 	startX: number,
+// 	startZ: number,
+// 	hspd: number,
+// 	vspd: number,
+// 	targetX: number,
+// 	conf: Derived,
+// 	maxSteps = 5000
+// ): number {
+// 	let x = startX, z = startZ, hx = hspd, vz = vspd;
+// 	const halfH = conf.FIELD_HEIGHT / 2;
 
+// 	// add difficulty noise HERE (nicht an scene.ball!)
+// 	// if (difficulty === 'MEDIUM') { hx += 0.05 - Math.random()*0.1; vz += 0.05 - Math.random()*0.1; }
+
+// 	// Simuliere, bis der Ball die senkrechte des Paddles erreicht hat
+// 	while (((hx > 0) ? x < targetX : x > targetX) && maxSteps-- > 0) {
+// 		x += hx;
+// 		z += vz;
+// 		if (z <= -halfH || z >= halfH) { vz *= -1; }
+// 	}
+// 	return z;
+// }
+
+// public aiPaddleControl(paddle: PaddleMesh): number {
+//   const ball = this.scene.ball;
+//   const paddleSpeed = this.conf.paddleSpeed;
+//   const targetX = paddle.position.x;
+//   const predictedZ = PaddleLogic.predictBallZAtX(
+// 	ball.position.x,
+// 	ball.position.z,
+// 	ball.speed.hspd,
+// 	ball.speed.vspd,
+// 	targetX,
+// 	this.conf
+//   );
+
+//   const dz = predictedZ - paddle.position.z;
+//   if (Math.abs(dz) <= paddleSpeed / 2) return 0;
+//   return Math.sign(dz) * paddleSpeed;
+// }
+
+	// export function moveBall(tempState: TmpState, ballV: { hspd: number; vspd: number }, conf: Readonly<Derived>, realMode: boolean): void {
+// 
 	//	AI controls paddle
-	// public aiPaddleControl(paddle: PaddleMesh): number {
+	// public aiPaddleControl(tempState: TmpState, ballV: { hspd: number; vspd: number }, conf: Readonly<Derived>, paddle: PaddleMesh): number {
+	// 	// console.log("AI controlling paddle");
 	// 	const ball = this.scene.ball;
 	// 	const paddle_side = (paddle.position.x < 0) ? 0 : 1;
 
@@ -81,18 +141,18 @@ export class PaddleLogic {
 	// 	if (performance.now() - this.lastPredictionTime[paddle_side] > 1000)
 	// 	/*&& ((paddle_side == 0 && this.scene.ball.speed.hspd < 0)
 	// 	|| (paddle_side == 1 && this.scene.ball.speed.hspd > 0)))*/ {
-	// 		let failsafe = this.conf.FIELD_WIDTH * 1.5;
+	// 		let failsafe = conf.FIELD_WIDTH * 1.5;
 	// 		let ball_xx = ball.position.x;
 	// 		let ball_zz = ball.position.z;
 	// 		let ball_hh = ball.speed.hspd;
 	// 		let ball_vv = ball.speed.vspd;
 
 	// 		//	Cut prediction path short
-	// 		if (Settings.getAiDifficulty == 'EASY')
+	// 		if (this.settings.getAiDifficulty() == 'EASY')
 	// 			failsafe /= 3;
 
 	// 		//	Offset ball direciton a bit to make it less accurate on MEDIUM difficulty
-	// 		if (Settings.getAiDifficulty == 'MEDIUM') {
+	// 		if (this.settings.getAiDifficulty() == 'MEDIUM') {
 	// 			ball.speed.hspd += 0.05 - (Math.random() * 0.1);
 	// 			ball.speed.vspd += 0.05 - (Math.random() * 0.1);
 	// 		}
@@ -100,13 +160,20 @@ export class PaddleLogic {
 	// 		//	Simulate ball movement
 	// 		if (paddle.position.x < 0) {
 	// 			while (ball.position.x > paddle.position.x + 5 && failsafe > 0) {
-	// 				moveBall(false);
+	// 				moveBall(tempState, ballV, conf, false);
+	// 				this.scene.ball.position.x = tempState.ballX;
+	// 				this.scene.ball.position.z = tempState.ballY;
+
+
+
 	// 				failsafe--;
 	// 			}
 	// 		}
 	// 		else if (paddle.position.x > 0) {
 	// 			while (ball.position.x < paddle.position.x - 5 && failsafe > 0) {
-	// 				moveBall(false);
+	// 				moveBall(tempState, ballV, conf, false);
+	// 									this.scene.ball.position.x = tempState.ballX;
+	// 				this.scene.ball.position.z = tempState.ballY;
 	// 				failsafe--;
 	// 			}
 	// 		}
@@ -129,13 +196,37 @@ export class PaddleLogic {
 	// 	//	Paddle is close to goal, don't move
 	// 	return (0);
 	// }
+	public aiPaddleControl(tempState: TmpState, ballV: { hspd: number; vspd: number },
+                       conf: Readonly<Derived>, paddle: PaddleMesh): number {
+  const side = (paddle.position.x < 0) ? 0 : 1;
 
+  if (performance.now() - this.lastPredictionTime[side] > 1000) {
+    let sim: TmpState = { ...tempState };
+    let vh = ballV.hspd;
+    let vv = ballV.vspd;
 
-	// //	Paddle is moved by getting position of opponents paddle
-	// public remotePaddleControl(paddle: PaddleMesh) : number {
-	// 	const	paddleSpeed = GameConfig.paddleSpeed;
-	// 	const	ball = this.scene.ball;
+    if (this.settings.getAiDifficulty() === 'MEDIUM') {
+      vh += 0.05 - (Math.random() * 0.1);
+      vv += 0.05 - (Math.random() * 0.1);
+    }
 
-	// 	return (Math.sign(ball.position.z - paddle.position.z) * paddleSpeed);
-	// }
+    let failsafe = conf.FIELD_WIDTH * (this.settings.getAiDifficulty()==='EASY' ? 0.5 : 1.5);
+
+    const targetX = paddle.position.x + (side === 0 ? 5 : -5);
+    while (((side === 0 && sim.ballX > targetX) || (side === 1 && sim.ballX < targetX))
+           && failsafe-- > 0) {
+      moveBall(sim, { hspd: vh, vspd: vv }, conf, false);
+    }
+
+    this.paddle_goal_pos[side] = sim.ballY;
+    this.lastPredictionTime[side] = performance.now();
+  }
+
+  if (Math.abs(this.paddle_goal_pos[side] - paddle.position.z) > this.conf.paddleSpeed / 2) {
+    return Math.sign(this.paddle_goal_pos[side] - paddle.position.z);
+  }
+  return 0;
+}
+
+	
 }

@@ -105,6 +105,7 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
         startLoop(room);
         const { userId } = parsed;
         console.log(`User ${userId} is ready`);
+        // broadcaster(room.players.keys(), null, JSON.stringify({ type: "ready", userId: userId }));
 
       } else if (type === "input") {
         console.log("Backend: Received input from client:", parsed);

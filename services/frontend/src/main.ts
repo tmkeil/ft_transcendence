@@ -5,8 +5,9 @@
 import { GameManager } from './managers/index.js';
 import { InputHandler } from './managers/index.js';
 import { RemotePlayerManager } from './managers/index.js';
-import { ServerState } from './interfaces/GameInterfaces';
+import { GameSettings, ServerState } from './interfaces/GameInterfaces';
 import { WorldConfig, Derived, buildWorld } from '@app/shared';
+import { Settings } from './game/GameSettings.js';
 
 // <!DOCTYPE html>
 // <html lang="en">
@@ -31,6 +32,7 @@ import { WorldConfig, Derived, buildWorld } from '@app/shared';
 // 	<div id="opponentSelection">
 // 		<button id="aiOpponentButton">Play vs AI</button>
 // 		<button id="localOpponentButton">Play vs Local Player</button>
+// 		<button id="remoteOpponentButton">Play vs Remote Player</button>
 // 	</div>
 // 	<!-- In case the user wants to play remotely, there is an input field for the room name he wants to join -->
 // 	<div id="roomSelection">
@@ -102,6 +104,7 @@ class Chat {
 		this.log = document.getElementById('log') as HTMLTextAreaElement;
 		this.input = document.getElementById('msg') as HTMLInputElement;
 		this.sendBtn = document.getElementById('send') as HTMLButtonElement;
+
 	}
 
 	public get_username(): string {
@@ -159,8 +162,8 @@ class Chat {
 export class App {
 	private Chat: Chat;
 	private gameManager: GameManager;
-	// private gameSettings: GameSettings;
 	private playerManager?: RemotePlayerManager;
+	// private startBtn = document.getElementById("startBtn") as HTMLButtonElement;
 
 	constructor() {
 		// For the UI and chat management and for subscribing to events on the chat (like in Angular)
@@ -198,6 +201,7 @@ export class App {
 
 			if (user)
 			{
+				this.Chat.show_chatbox();
 				this.setupRemoteEvents(user);
 				this.Chat.append_log(`Registered as "${user.name}" (id=${user.id})`);
 			}
@@ -213,9 +217,6 @@ export class App {
 	private setupRemoteEvents(user: { id: number, name: string }): void {
 		// Initialize the RemotePlayerManager with the user ID
 		this.playerManager = new RemotePlayerManager(user.id);
-		// Show the chatbox for a registered user
-		this.Chat.show_chatbox();
-
 		// Bind this (append_log) to the user's/subscriber's callback to get fire when a message arrives from the server
 		// this.playerManager.addCallback((msg: string) => {
 		// 	this.Chat.append_log(msg);
@@ -251,8 +252,8 @@ export class App {
 
 		// Bind the RemotePlayerManager to the InputHandler for remote input handling
 		this.gameManager.getInputHandler().bindRemote(this.playerManager);
-
-		this.playerManager.join('room1');	}
+		this.playerManager.join('room1');
+	}
 }
 
 document.addEventListener('DOMContentLoaded', () => {

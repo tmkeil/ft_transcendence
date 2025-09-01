@@ -20,7 +20,10 @@ export class InputHandler {
 	// This is called from the GameManager when a RemotePlayerManager is created to bind the remote player to the input handler
 	public bindRemote(remote: RemotePlayerManager) : void {
 		this.remote = remote;
-		this.isRemote = true;
+	}
+
+	public setRemote(isRemote: Boolean) : void {
+		this.isRemote = isRemote;
 	}
 
 	private setUpEventListeners() : void {
@@ -29,9 +32,11 @@ export class InputHandler {
 		if (startBtn) {
 			startBtn.addEventListener("click", () => {
 				if (this.isRemote && this.remote) {
+					console.log("Remote game: Player is ready, sending to server");
 					// Send via the remote player manager to the server, that the player is ready. It sets the ready state for this player in a room to true
 					this.remote.ready();
 				} else {
+					console.log("Local game: Player is ready, setting game to playing");
 					// In case of local players just set GameStatus.playing to true, so the GameLoop updates the GameStatus (ball/paddles/score-texture) continuously
 					this.game.playing = true;
 				}

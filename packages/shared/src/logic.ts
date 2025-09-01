@@ -12,6 +12,7 @@ type TmpState = {
 }
 
 export function movePaddles(tempState: TmpState, inputs: { left: number; right: number }, conf: Readonly<Derived>): void {
+	// console.log("Moving paddles with inputs:", inputs);
     const paddleSize = conf.paddleSize;
 	const paddleSpeed = conf.paddleSpeed;
 	const paddle_acc = conf.PADDLE_ACC;
@@ -33,7 +34,7 @@ export function movePaddles(tempState: TmpState, inputs: { left: number; right: 
     	Math.min(FIELD_HEIGHT / 2 - paddleSize / 2, tempState.p2Y));
 }
 
-export function moveBall(tempState: TmpState, ballV: { hspd: number; vspd: number }, conf: Readonly<Derived>): void {
+export function moveBall(tempState: TmpState, ballV: { hspd: number; vspd: number }, conf: Readonly<Derived>, realMode: boolean): void {
 	const FIELD_WIDTH = conf.FIELD_WIDTH;
 	const FIELD_HEIGHT = conf.FIELD_HEIGHT;
 
@@ -101,6 +102,7 @@ export function moveBall(tempState: TmpState, ballV: { hspd: number; vspd: numbe
 	if (tempState.ballY <= -FIELD_HEIGHT / 2 || tempState.ballY >= FIELD_HEIGHT / 2) {
 		ballV.vspd *= -1;
 	}
+	console.log("Ball after move:", tempState.ballX, tempState.ballY);
 }
 
   // Reset the ball velocity to a random horizontal direction and a randomized angle between +45 and -45 on the x-axis
