@@ -18,26 +18,33 @@ services:
 
   frontend:
     build:
-      context: ./services/frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/frontend/Dockerfile
+      target: dev
     container_name: transcendence_frontend
+    volumes:
+      - ./services/frontend:/app/services/frontend
+      - ./packages/shared:/app/packages/shared
+    ports:
+      - "5173:5173"
     networks:
       - transcendence-net
 
   backend:
     build:
-      context: ./services/backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/backend/Dockerfile
     container_name: transcendence_backend
     networks:
       - transcendence-net
     ports:
       - "3000:3000"
     volumes:
-      - ./services/backend/data:/app/data
+      - ./services/backend/data:/app/services/backend/data
       # - backend_data:/app
 
 volumes:
+  frontend_node_modules:
   backend_data:
 
 networks:

@@ -1,154 +1,173 @@
-import { GameScene , BallMesh, PaddleMesh } from "../interfaces/GameInterfaces.js";
-import { GameConfig } from "./GameConfig.js";
+import { BallMesh, GameScene, PaddleMesh, } from '../interfaces/GameInterfaces.js';
+import { Derived } from '@app/shared';
+
 //	import * as BABYLON from 'babylonjs';
 
 export class SceneBuilder {
-	private canvas:	HTMLCanvasElement;
-	private engine:	BABYLON.Engine;
+	private conf: Readonly<Derived>;
+	private canvas: HTMLCanvasElement;
+	private engine: BABYLON.Engine;
 
-	constructor(canvasId: string) {
-		const canvasElement = document.getElementById(canvasId) as HTMLCanvasElement;
-		if (!canvasElement || !(canvasElement instanceof HTMLCanvasElement)) {
-			console.error(`Canvas element '${canvasId}' not found or invalid`);
-			this.canvas = document.createElement('canvas'); //fallback canvas
-			document.body.appendChild(this.canvas);
-		} else
-			this.canvas = canvasElement;
+	constructor(canvasId: string, private cfg: Readonly<Derived>) {
+		this.conf = cfg;
+		const canvasElement =
+			document.getElementById(canvasId) as HTMLCanvasElement | null;
+		this.canvas = canvasElement ?? document.createElement('canvas');
+		if (!canvasElement) document.body.appendChild(this.canvas);
 		this.engine = new BABYLON.Engine(this.canvas, true);
 	}
 
-	public createScene() : GameScene {
+	public setConfig(conf: Readonly<Derived>) {
+		this.conf = conf;
+	}
+
+	public rebuild(conf: Readonly<Derived>): GameScene {
+		this.conf = conf;
+		if (this.engine.scenes.length) this.engine.scenes[0].dispose();
+		return this.createScene();
+	}
+
+	public createScene(): GameScene {
 		const scene = new BABYLON.Scene(this.engine) as GameScene;
-		
+
 		this.setUpLights(scene);
 		this.setUpCamera(scene);
 		this.createGameObjects(scene);
 		this.setUpMaterials(scene);
 		this.positionObjects(scene);
-		return (scene);
+		return scene;
 	}
 
-	public getEngine() : BABYLON.Engine {
-		return (this.engine);
+	public getEngine(): BABYLON.Engine {
+		return this.engine;
 	}
 
-	private setUpLights(scene: GameScene) : void{
+	private setUpLights(scene: GameScene): void {
 		scene.createDefaultLight();
 		scene.defaultLight = scene.lights[scene.lights.length - 1];
 	}
 
-	private setUpCamera(scene: GameScene) : void {
-		
+	private setUpCamera(scene: GameScene): void {
 		//	Store initial camera values
-		const alpha = -Math.PI/2;
-		const beta = Math.PI/5;
-		const radius = Math.max(GameConfig.FIELD_WIDTH, GameConfig.FIELD_HEIGHT) * 0.85;
+		const alpha = -Math.PI / 2;
+		const beta = Math.PI / 5;
+		const radius =
+			Math.max(this.conf.FIELD_WIDTH, this.conf.FIELD_HEIGHT) * 0.85;
 
 		//	Create default camera
-		scene.camera = new BABYLON.ArcRotateCamera("camera", alpha, beta, radius, BABYLON.Vector3.Zero(), scene);
+		scene.camera = new BABYLON.ArcRotateCamera(
+			'camera', alpha, beta, radius, BABYLON.Vector3.Zero(), scene);
 
 		//	Save values to camera
-		(scene.camera as any).og_alpha = alpha;
-		(scene.camera as any).og_beta = beta;
-		(scene.camera as any).og_radius = radius;
+		const cam: any = scene.camera;
+		cam.og_alpha = alpha;
+		cam.og_beta = beta;
+		cam.og_radius = radius;
 
-		//	Move the camera using mouse. Maybe for cool battle intro? (Disabled manual movement)
-		//scene.camera.attachControl(this.canvas, true);
+		//	Move the camera using mouse. Maybe for cool battle intro? (Disabled
+		//manual movement) scene.camera.attachControl(this.canvas, true);
 	}
-	
-	private createGameObjects(scene: GameScene) : void {
-		const paddleSize = GameConfig.paddleSize;
+
+	private createGameObjects(scene: GameScene): void {
+		const paddleSize = this.conf.FIELD_HEIGHT * this.conf.PADDLE_RATIO;
 
 		//	Ground
-		scene.ground = BABYLON.MeshBuilder.CreateGround("ground", {
-			width:	GameConfig.FIELD_WIDTH,
-			height:	GameConfig.FIELD_HEIGHT
-		}, scene);
+		scene.ground = BABYLON.MeshBuilder.CreateGround(
+			'ground', {
+			width: this.conf.FIELD_WIDTH,
+			height: this.conf.FIELD_HEIGHT,
+		},
+			scene);
 
 		//	Score display
-		const groundMaterial = new BABYLON.StandardMaterial("groundMaterial", scene);
-		const dynamicTexture = new BABYLON.DynamicTexture("score", {width: 1024, height: 512}, scene);
+		const groundMaterial =
+			new BABYLON.StandardMaterial('groundMaterial', scene);
+		const dynamicTexture =
+			new BABYLON.DynamicTexture('score', { width: 1024, height: 512 }, scene);
 		groundMaterial.diffuseTexture = dynamicTexture;
-		dynamicTexture.drawText("0    0", null, 120, "bold 100px Segoe UI, monospace", "white", "#002D2D", true, true);
+		dynamicTexture.drawText(
+			'0    0', null, 120, 'bold 100px Segoe UI, monospace', 'white',
+			'#002D2D', true, true);
 		scene.ground.material = groundMaterial;
 		scene.scores = dynamicTexture;
 
 		//	Midline
 		const midlinePoints = [
-			new BABYLON.Vector3(0, 0.1, -GameConfig.FIELD_HEIGHT / 2),
-			new BABYLON.Vector3(0, 0.1, GameConfig.FIELD_HEIGHT / 2)
+			new BABYLON.Vector3(0, 0.1, -this.conf.FIELD_HEIGHT / 2),
+			new BABYLON.Vector3(0, 0.1, this.conf.FIELD_HEIGHT / 2),
 		];
-		
-		scene.midline = BABYLON.MeshBuilder.CreateDashedLines("midline", {
+
+		scene.midline = BABYLON.MeshBuilder.CreateDashedLines(
+			'midline', {
 			points: midlinePoints,
 			dashSize: 1,
 			gapSize: 1,
-			dashNb: 24
-		}, scene);
+			dashNb: 24,
+		},
+			scene);
 
 		//	Ball
-		const ballMesh = BABYLON.MeshBuilder.CreateBox("ball", {
-			height : 1,
-			width : 1,
-			depth : 1,
-		}, scene);
+		const ballMesh = BABYLON.MeshBuilder.CreateBox(
+			'ball', {
+			height: 1,
+			width: 1,
+			depth: 1,
+		},
+			scene);
 		scene.ball = Object.assign(ballMesh, {
-			speed: GameConfig.ballSpeed,
-			spd_damp: 0
+			speed: { hspd: 0, vspd: 0 },
 		}) as BallMesh;
 
-		// Left Paddle
-		const paddle1Mesh = BABYLON.MeshBuilder.CreateBox("paddle1", {
-			height: 1,
-			width: 1,
-			depth: paddleSize,
-		}, scene);
-		scene.paddle1 = Object.assign(paddle1Mesh, {
-			speed: { hspd: 0, vspd: 0 }, // Unique speed object for paddle1
-		}) as PaddleMesh;
-	
-		// Right Paddle
-		const paddle2Mesh = BABYLON.MeshBuilder.CreateBox("paddle2", {
-			height: 1,
-			width: 1,
-			depth: paddleSize,
-		}, scene);
-		scene.paddle2 = Object.assign(paddle2Mesh, {
-			speed: { hspd: 0, vspd: 0 }, // Unique speed object for paddle2
-		}) as PaddleMesh;
+		const mkPaddle = (name: string) =>
+			Object.assign(
+				BABYLON.MeshBuilder.CreateBox(
+					name, { height: 1, width: 1, depth: paddleSize }, scene),
+				{
+					speed: { hspd: 0, vspd: 0 },
+				}) as PaddleMesh;
+		scene.paddle1 = mkPaddle('paddle1');
+		scene.paddle2 = mkPaddle('paddle2');
 
 		//	Left Wall
-		scene.leftWall = BABYLON.MeshBuilder.CreateBox("leftWall", {
-			height : 1,
-			width : 1,
-			depth : GameConfig.FIELD_HEIGHT,
-		}, scene)
+		scene.leftWall = BABYLON.MeshBuilder.CreateBox(
+			'leftWall', {
+			height: 1,
+			width: 1,
+			depth: this.conf.FIELD_HEIGHT,
+		},
+			scene);
 
 		//	Right Wall
-		scene.rightWall = BABYLON.MeshBuilder.CreateBox("rightWall", {
-			height : 1,
-			width : 1,
-			depth : GameConfig.FIELD_HEIGHT,
-		}, scene)
+		scene.rightWall = BABYLON.MeshBuilder.CreateBox(
+			'rightWall', {
+			height: 1,
+			width: 1,
+			depth: this.conf.FIELD_HEIGHT,
+		},
+			scene);
 
 		//	Upper Wall
-		scene.upperWall = BABYLON.MeshBuilder.CreateBox("upperWall", {
-			height : 1,
-			width : GameConfig.FIELD_WIDTH,
-			depth : 1,
-		}, scene)
+		scene.upperWall = BABYLON.MeshBuilder.CreateBox(
+			'upperWall', {
+			height: 1,
+			width: this.conf.FIELD_WIDTH,
+			depth: 1,
+		},
+			scene);
 
 		//	Bottom Wall
-		scene.bottomWall = BABYLON.MeshBuilder.CreateBox("bottomWall", {
-			height : 1,
-			width : GameConfig.FIELD_WIDTH,
-			depth : 1,
-		}, scene)
+		scene.bottomWall = BABYLON.MeshBuilder.CreateBox(
+			'bottomWall', {
+			height: 1,
+			width: this.conf.FIELD_WIDTH,
+			depth: 1,
+		},
+			scene);
 	}
 
 	//	Materials (As of now there is only one (cyan-esk color))
-	private setUpMaterials(scene : GameScene) : void {
-		const mainMaterial = new BABYLON.StandardMaterial("mainMaterial", scene);
+	private setUpMaterials(scene: GameScene): void {
+		const mainMaterial = new BABYLON.StandardMaterial('mainMaterial', scene);
 		mainMaterial.diffuseColor = new BABYLON.Color3(0.62, 0.85, 0.8);
 
 		scene.ball.material = mainMaterial;
@@ -161,14 +180,20 @@ export class SceneBuilder {
 	}
 
 	//	Set origin for all Scene objects
-	private positionObjects(scene : GameScene) : void {
+	private positionObjects(scene: GameScene): void {
 		//	Positions as vector3 (x, y, z) / (width, height, depth)
 		scene.ball.position = new BABYLON.Vector3(0, 0.5, 0);
-		scene.paddle1.position = new BABYLON.Vector3(-GameConfig.FIELD_WIDTH / 2 + 5, 0.5, 0);
-		scene.paddle2.position = new BABYLON.Vector3(GameConfig.FIELD_WIDTH / 2 - 5, 0.5, 0);
-		scene.leftWall.position = new BABYLON.Vector3(-GameConfig.FIELD_WIDTH / 2, 0.5, 0);
-		scene.rightWall.position = new BABYLON.Vector3(GameConfig.FIELD_WIDTH / 2, 0.5, 0);
-		scene.upperWall.position = new BABYLON.Vector3(0, 0.5, GameConfig.FIELD_HEIGHT / 2);
-		scene.bottomWall.position = new BABYLON.Vector3(0, 0.5, -GameConfig.FIELD_HEIGHT / 2);
+		scene.paddle1.position =
+			new BABYLON.Vector3(-this.conf.FIELD_WIDTH / 2 + 3, 0.5, 0);
+		scene.paddle2.position =
+			new BABYLON.Vector3(this.conf.FIELD_WIDTH / 2 - 3, 0.5, 0);
+		scene.leftWall.position =
+			new BABYLON.Vector3(-this.conf.FIELD_WIDTH / 2, 0.5, 0);
+		scene.rightWall.position =
+			new BABYLON.Vector3(this.conf.FIELD_WIDTH / 2, 0.5, 0);
+		scene.upperWall.position =
+			new BABYLON.Vector3(0, 0.5, this.conf.FIELD_HEIGHT / 2);
+		scene.bottomWall.position =
+			new BABYLON.Vector3(0, 0.5, -this.conf.FIELD_HEIGHT / 2);
 	}
 }

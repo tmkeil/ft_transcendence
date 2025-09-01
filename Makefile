@@ -10,6 +10,7 @@ up:
 down:
 	@echo "Stopping and removing Services..."
 	docker compose down
+	rm -rf ./services/frontend/node_modules ./packages/shared/dist
 
 prune: down
 	@echo "Nuking all Services..."

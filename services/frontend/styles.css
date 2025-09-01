@@ -42,7 +42,7 @@ h1 {
 }
 
 /* Button Styling */
-#startButton {
+#startBtn {
 	padding: 12px 24px;
 	font-size: 18px;
 	background-color: #b8f2e6;
@@ -54,7 +54,7 @@ h1 {
 	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-#startButton:hover {
+#startBtn:hover {
 	background-color: #fcbad3;
 	color: #333;
 	transform: scale(1.05);
