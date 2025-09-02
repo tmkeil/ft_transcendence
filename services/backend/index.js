@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import sqlite3 from "sqlite3";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
+import bcrypt from "bcryptjs";
 import { getOrCreateRoom, rooms } from "./gameRooms.js";
 import { initDb } from "./initDatabases.js";
 import { broadcaster } from "./utils.js";
@@ -19,25 +20,18 @@ const db = new sqlite3.Database("./data/database.sqlite");
 
 // Register CORS and WebSocket plugins
 await fastify.register(cors, {
-  origin: true,
+	origin: true,
 });
 await fastify.register(websocket);
-
 // Call the initDb function to create the tables by the time the server starts
-initDb(db);
+initDb();
 
-// Test for adding a user via POST request to the database
-fastify.post("/users", (request, reply) => {
-  const { name } = request.body;
-  if (!name) {
-    reply.code(400).send({ error: "Name is required" });
-    return;
-  }
-  db.run("INSERT INTO users (name) VALUES (?)", [name], function (err) {
+fastify.get("/users", (request, reply) => {
+  db.all("SELECT * FROM users", [], (err, rows) => {
     if (err) {
       reply.code(500).send({ error: err.message });
     } else {
-      reply.send({ id: this.lastID, name });
+      reply.send(rows);
     }
   });
 });
@@ -64,13 +58,13 @@ const clients = new Set();
 // New sockets/connections are added to the clients set (at the moment)
 // Later this should be moved to a more sophisticated user management system where new users are registered and authenticated
 fastify.get("/ws", { websocket: true }, (connection, req) => {
-  const ws = connection.socket;
-  clients.add(ws);
+	const ws = connection.socket;
+	clients.add(ws);
 
-  // When a client disconnects, remove it from the clients set
-  ws.on("close", () => {
-    clients.delete(ws);
-  });
+	// When a client disconnects, remove it from the clients set
+	ws.on("close", () => {
+		clients.delete(ws);
+	});
 
   // When (on the server side) a message is received from a client, parse it and store it in the db and broadcast it to the others
   ws.on("message", (message) => {
@@ -123,14 +117,68 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
   });
 });
 
+fastify.post("/api/register", (request, reply) => {
+	const { username, email, password } = request.body;
+
+	if (!username || !email || !password) {
+		return reply.code(400).send({ error: "Missing fields" });
+	}
+
+	const salt = bcrypt.genSaltSync(15);
+	const hash = bcrypt.hashSync(password, salt);
+	db.run(
+		"INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+		[username, email, hash],
+		function (err) {
+			if (err) {
+				if (err.message.includes("UNIQUE")) {
+					return reply
+					.code(400)
+					.send({ error: "Username or email already taken" });
+				}
+				return reply.code(500).send({ error: err.message });
+			}
+			reply.send({ id: this.lastID, username, email });
+		}
+	);
+});
+
+fastify.post("/api/login", (request, reply) => {
+	const { username, password } = request.body;
+
+	if (!username || !password) {
+		return reply.code(400).send({ error: "Missing fields" });
+	}
+
+	db.get(
+		"SELECT * FROM users WHERE username = ?",
+		[username],
+		(err, user) => {
+			if (err) {
+				return reply.code(500).send({ error: err.message });
+			}
+			if (!user) {
+				return reply.code(400).send({ error: "Invalid credentials" });
+			}
+
+			const isValid = bcrypt.compareSync(password, user.password_hash);
+			if (!isValid) {
+				return reply.code(400).send({ error: "Invalid credentials" });
+			}
+
+			// We just return user info. In a real app, use sessions or JWTs.
+			reply.send({ id: user.id, username: user.username, email: user.email });
+		}
+	);
+});
 
 // Start the Fastify server on port 3000 hosting on all interfaces
 fastify.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
-  if (err) {
-    fastify.log.error(err);
-    process.exit(1);
-  }
-  fastify.log.info("Backend running on port 3000");
+	if (err) {
+		fastify.log.error(err);
+		process.exit(1);
+	}
+	fastify.log.info("Backend running on port 3000");
 });
 
 export function startLoop(room) {
