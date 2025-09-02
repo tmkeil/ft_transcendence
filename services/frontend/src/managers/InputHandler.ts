@@ -16,7 +16,7 @@ export class InputHandler {
 		this.setUpEventListeners();
 	}
 
-	public bindRemoteSender(fn: (dir: -1 | 0 | 1) => void): void { // <— NEU
+	public bindRemoteSender(fn: (dir: -1 | 0 | 1) => void): void {
 		this.sendRemote = fn;
 	}
 
@@ -29,7 +29,6 @@ export class InputHandler {
 	}
 
 	private setUpEventListeners() : void {
-
 		document.addEventListener("keydown", (ev) => {
 			if (!this.usedKeys.includes(ev.key)) return;
 			console.log("Key pressed:", ev.key);
