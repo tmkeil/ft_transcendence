@@ -80,7 +80,6 @@ export function moveBall(tempState, ballV, conf, realMode) {
     if (tempState.ballY <= -FIELD_HEIGHT / 2 || tempState.ballY >= FIELD_HEIGHT / 2) {
         ballV.vspd *= -1;
     }
-    console.log("Ball after move:", tempState.ballX, tempState.ballY);
 }
 // Reset the ball velocity to a random horizontal direction and a randomized angle between +45 and -45 on the x-axis
 // The total speed is constant ~0.3

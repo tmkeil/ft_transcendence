@@ -2,85 +2,12 @@
 /// <reference types="babylonjs" />
 */
 
+import { router } from './router/router.js';
 import { GameManager } from './managers/index.js';
 import { InputHandler } from './managers/index.js';
 import { RemotePlayerManager } from './managers/index.js';
-import { GameSettings, ServerState } from './interfaces/GameInterfaces';
-import { WorldConfig, Derived, buildWorld } from '@app/shared';
-import { Settings } from './game/GameSettings.js';
-
-// <!DOCTYPE html>
-// <html lang="en">
-
-// <head>
-// 	<meta charset="UTF-8" />
-// 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-// 	<title>Transcendence Pong</title>
-// 	<link rel="stylesheet" href="styles.css" />
-// </head>
-
-// <body>
-// 	<h1>Transcendence Pong</h1>
-// 	<canvas id="gameCanvas"></canvas>
-// 	<!-- Game Control Buttons. StartBtn to start the chosen game mode, StopBtn to stop the game, and ResetBtn to reset the game -->
-// 	<div id="gameControls">
-// 		<button id="startBtn">Start Game</button>
-// 		<button id="stopBtn">Stop Game</button>
-// 		<button id="resetBtn">Reset Game</button>
-// 	</div>
-// 	<!-- Choose the Opponent by clicking on a button. Choose between AI and Local Player -->
-// 	<div id="opponentSelection">
-// 		<button id="aiOpponentButton">Play vs AI</button>
-// 		<button id="localOpponentButton">Play vs Local Player</button>
-// 		<button id="remoteOpponentButton">Play vs Remote Player</button>
-// 	</div>
-// 	<!-- In case the user wants to play remotely, there is an input field for the room name he wants to join -->
-// 	<div id="roomSelection">
-// 		<input type="text" id="roomName" placeholder="Enter room name" />
-// 		<button id="joinRoomButton">Join Room</button>
-// 	</div>
-
-// 	<h2>User Management</h2>
-// 	<form id="addUserForm">
-// 		<input type="text" id="userName" placeholder="Enter name" required />
-// 		<button type="submit">Register</button>
-// 	</form>
-
-// 	<div id="chat">
-// 		<textarea id="log" cols="50" rows="10" readonly></textarea><br />
-// 		<input id="msg" type="text" placeholder="Type a message..." />
-// 		<button id="send">Send</button>
-// 	</div>
-// 	<script src="https://cdn.babylonjs.com/babylon.js"></script>
-// 	<script type="module" src="/db_web_api.js"></script>
-// 	<script type="module" src="src/main.ts"></script>
-// </body>
-
-// </html>
-
-// export class Settings {
-
-// 	private static settings: GameSettings = {
-// 		ai_difficulty:	'HARD',
-// 		opponent:		'REMOTE'
-// 	};
-
-// 	public static setAiDifficulty(difficulty: 'EASY' | 'MEDIUM' | 'HARD') {
-// 		this.settings.ai_difficulty = difficulty;
-// 	}
-	
-// 	public static get getAiDifficulty() {
-// 		return (this.settings.ai_difficulty);
-// 	}
-
-// 	public static setOpponent(opponent: 'PERSON' | 'REMOTE' | 'AI') {
-// 		this.settings.opponent = opponent;
-// 	}
-	
-// 	public static get getOpponent() {
-// 		return (this.settings.opponent);
-// 	}
-// }
+import { ServerState } from './interfaces/GameInterfaces';
+import { Derived } from '@app/shared';
 
 class Chat {
 	// User registration elements

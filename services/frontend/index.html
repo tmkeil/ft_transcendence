@@ -1,48 +1,3 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-
-<head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>Transcendence Pong</title>
-	    
-</head>
-
-<body>
-	<h1>Transcendence Pong</h1>
-	<canvas id="gameCanvas"></canvas>
-	<div id="gameControls">
-		<button id="startBtn">Start Game</button>
-		<button id="stopBtn">Stop Game</button>
-		<button id="resetBtn">Reset Game</button>
-	</div>
-	<div id="opponentSelection">
-		<button id="aiOpponentButton">Play vs AI</button>
-		<button id="localOpponentButton">Play vs Local Player</button>
-		<button id="remoteOpponentButton">Play vs Remote Player</button>
-	</div>
-	<div id="roomSelection">
-		<input type="text" id="roomName" placeholder="Enter room name" />
-		<button id="joinRoomButton">Join Room</button>
-	</div>
-
-	<h2>User Management</h2>
-	<form id="addUserForm">
-		<input type="text" id="userName" placeholder="Enter name" required />
-		<button type="submit">Register</button>
-	</form>
-
-	<div id="chat">
-		<textarea id="log" cols="50" rows="10" readonly></textarea><br />
-		<input id="msg" type="text" placeholder="Type a message..." />
-		<button id="send">Send</button>
-	</div>
-	<script src="https://cdn.babylonjs.com/babylon.js"></script>
-	<script type="module" src="/db_web_api.js"></script>
-	<script type="module" src="src/main.ts"></script>
-</body>
-
-</html> -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -55,12 +10,13 @@
 
 <body>
     <nav>
+		<a href="/login" data-link>Login</a>
         <a href="/" data-link>Home</a>
         <a href="/dashboard" data-link>Dashboard</a>
     </nav>
 
     <div id="main-page"></div>
-    <script type="module" src="src/router.ts"></script>
+	<script type="module" src="src/router/router.ts"></script>
 </body>
 
 </html>
