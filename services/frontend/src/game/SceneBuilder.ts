@@ -1,7 +1,6 @@
 import { BallMesh, GameScene, PaddleMesh, } from '../interfaces/GameInterfaces.js';
 import { Derived } from '@app/shared';
-
-//	import * as BABYLON from 'babylonjs';
+import * as BABYLON from 'babylonjs';
 
 export class SceneBuilder {
 	private conf: Readonly<Derived>;

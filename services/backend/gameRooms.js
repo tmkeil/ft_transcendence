@@ -29,12 +29,15 @@ export class Room {
   }
 
   addPlayer(userId, ws) {
+    // If this player is already in the room, do nothing
+    if (this.players.has(ws)) return;
     const side = this.players.size % 2 === 0 ? "left" : "right";
     this.players.set(ws, { id: userId, side: side, ready: false });
     console.log(`User ${userId} added to room ${this.id}`);
     ws._roomId = this.id;
     ws._side = side;
   }
+  
   removePlayer(ws) {
     this.players.delete(ws);
     console.log(`Player removed from room ${this.id}`);

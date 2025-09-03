@@ -1,4 +1,5 @@
 .env
+**/node_modules
 ./services/frontend/node_modules
 ./packages/shared/dist
 .DS_Store

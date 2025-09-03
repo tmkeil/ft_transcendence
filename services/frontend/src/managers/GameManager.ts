@@ -9,11 +9,6 @@ import { Derived, WorldConfig, buildWorld } from '@app/shared';
 import { Settings } from "../game/GameSettings.js";
 
 export class GameManager {
-		// Opponent Selection Buttons
-		private aiOpponentButton;
-		private localOpponentButton;
-		private remoteOpponentButton;
-		private settings: Settings;
 
 	private gameStatus!: GameStatus;
 	private inputHandler!: InputHandler;
@@ -22,37 +17,11 @@ export class GameManager {
 	private scene!: GameScene;
 	private paddleLogic!: PaddleLogic;
 	private conf!: Readonly<Derived>;
+	private settings: Settings;
 
-	constructor() {
-		this.settings = new Settings();
-		this.aiOpponentButton = document.getElementById('aiOpponentButton') as HTMLButtonElement;
-		this.localOpponentButton = document.getElementById('localOpponentButton') as HTMLButtonElement;
-		this.remoteOpponentButton = document.getElementById('remoteOpponentButton') as HTMLButtonElement;
+	constructor(settings: Settings) {
+		this.settings = settings;
 		this.initialize();
-
-			this.aiOpponentButton.addEventListener('click', () => {
-			console.log("AI Opponent button clicked");
-			// Set the opponent to AI in the game settings
-			this.settings.setOpponent('AI');
-			// Inform the input handler that it is not a remote game
-			this.inputHandler.setRemote(false);
-		});
-
-		this.localOpponentButton.addEventListener('click', () => {
-			console.log("Local Opponent button clicked");
-			// Set the opponent to PERSON in the game settings
-			this.settings.setOpponent('PERSON');
-			// Inform the input handler that it is not a remote game
-			this.inputHandler.setRemote(false);
-		});
-
-		this.remoteOpponentButton.addEventListener('click', () => {
-			console.log("Remote Opponent button clicked");
-			// Set the opponent to REMOTE in the game settings
-			this.settings.setOpponent('REMOTE');
-			// Inform the input handler that it is a remote game
-			this.inputHandler.setRemote(true);
-		});
 	}
 
 	public async initialize() {
@@ -106,6 +75,8 @@ export class GameManager {
 		this.gameLogic.setPaddleLogic(this.paddleLogic);
 		this.setUpEventListeners();
 		// Start the game loop which updates the game state and renders the scene
+		this.gameLogic.setConfig(this.conf);
+		this.paddleLogic.setConfig(this.conf);
 		this.startGameLoop();
 	}
 
@@ -214,4 +185,11 @@ export class GameManager {
 		console.log("Game started at:", timestamp);
 		this.gameStatus.timestamp = timestamp;
 	}
+<<<<<<< HEAD
+=======
+
+	public getGameStatus(): GameStatus {
+		return this.gameStatus;
+	}
+>>>>>>> dev
 }

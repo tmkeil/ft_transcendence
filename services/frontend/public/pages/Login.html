@@ -1,0 +1,25 @@
+<!-- <h2>Login / Register</h2>
+<form id="loginForm">
+  <input id="userName" placeholder="Enter name" required />
+  <button type="submit">Continue</button>
+</form>
+<p id="loginError" style="color:red;display:none"></p> -->
+
+<h2>Account</h2>
+<button id="accountButton">Login / Register</button>
+
+<!-- Modal Popup -->
+<div id="accountModal"
+  style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5);">
+  <div style="background:#fff; margin:10% auto; padding:20px; width:300px; border-radius:8px; position:relative;">
+    <button id="closeModal" style="position:absolute; top:10px; right:10px;">X</button>
+    <h3 id="modalTitle">Login</h3>
+    <form id="accountForm">
+      <input type="text" id="modalUsername" placeholder="Username" required /><br />
+      <input type="password" id="modalPassword" placeholder="Password" required /><br />
+      <button type="submit" id="loginBtn">Login</button>
+      <button type="button" id="switchToRegister">Register</button>
+    </form>
+    <div id="modalError" style="color:red; margin-top:10px;"></div>
+  </div>
+</div>
