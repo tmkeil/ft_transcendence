@@ -95,11 +95,11 @@ export const HomeController = (root: HTMLElement) => {
 
   // Leave a game room and send it to the server
   const onLeave = () => {
-    if (!ws)
-      return;
-    const room = roomInputLeave.value.trim() || "room1";
-    console.log("Leaving room and sending to server:", room);
-    ws.send({ type: "leave", roomId: room, userId: userId });
+    try {
+      ws.send({ type: "leave", userId: userId });
+    } catch {
+      ws.close();
+    }
   };
 
   // Ready up and send it to the server
@@ -148,9 +148,14 @@ export const HomeController = (root: HTMLElement) => {
   aiBtn.addEventListener("click", onAI);
   localBtn.addEventListener("click", onLocal);
   remoteBtn.addEventListener("click", onRemote);
+  window.addEventListener("beforeunload", onLeave, { once: true });
+  window.addEventListener("unload", onLeave, { once: true });
 
   // Cleanup function to remove event listeners when navigating away from the page
   return () => {
+    ws.send({ type: "teardown", msg: "Teared down HomeController", userId: userId });
+    onLeave();
+    ws.close();
     sendBtn.removeEventListener("click", onSend);
     joinBtn.removeEventListener("click", onJoin);
     leaveBtn.removeEventListener("click", onLeave);
@@ -158,6 +163,9 @@ export const HomeController = (root: HTMLElement) => {
     stopBtn.removeEventListener("click", onStop);
     aiBtn.removeEventListener("click", onAI);
     localBtn.removeEventListener("click", onLocal);
+
+    window.removeEventListener("beforeunload", onLeave);
+    window.removeEventListener("unload", onLeave);
     // remote?.disconnect();
     // game.dispose();
   };

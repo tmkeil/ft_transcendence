@@ -48,6 +48,7 @@ export class Room {
 }
 
 export function getOrCreateRoom(roomId) {
+  if (!roomId) return null;
   let room = rooms.get(roomId);
   if (!room) {
     room = new Room(roomId);

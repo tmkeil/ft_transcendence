@@ -10,6 +10,9 @@ const routes: Record<string, Route> = {
     "/404": { template: "/pages/404.html", auth: false },
 };
 
+// Teardown function. When navigating away from a page, the returned code from the site controller is called
+let teardown: () => void = () => {};
+
 // If the user is authenticated (has a userId in localStorage)
 const isAuthed = () => {
   if (localStorage.getItem("userId")) {
@@ -20,6 +23,11 @@ const isAuthed = () => {
 
 // This updates the browser's history and loads the new page content.
 export function navigate(path: string): void {
+    console.log(`Navigating to ${path}`);
+    // When navigating away, call the previous page's teardown function
+    teardown();
+    // Reset the teardown function to a no-op
+    teardown = () => {};
     history.pushState({}, "", path);
     handleLocation();
 }
@@ -49,13 +57,17 @@ async function handleLocation(): Promise<void> {
         const root = document.getElementById("main-page")!;
         root.innerHTML = html;
         if (path === "/") {
+            console.log("Loading home page");
             const { HomeController } = await import("/src/pages/Home.js");
             // Call the HomeController to set up event listeners and manage the home page
-            HomeController(root);
+            // Teardown function when navigating away from the home page, the return code from HomeController is called
+            teardown = HomeController(root);
         } else if (path === "/login") {
+            console.log("Loading login page");
             const { mountLogin } = await import("/src/pages/Login.js");
             // Call the mountLogin to set up event listeners and manage the login page
-            mountLogin(root);
+            // And execute the returned code, when navigating away from the login page
+            teardown = mountLogin(root);
         }
         // } else if (path === "/dashboard") {
         //     const { mountDashboard } = await import("/src/pages/Dashboard.js");

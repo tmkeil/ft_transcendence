@@ -93,8 +93,8 @@ class WSClient {
 
   // Responsible for closing the WebSocket connection
   close() {
-    this.userId = undefined;
     this.ws?.close();
+    this.userId = undefined;
     this.connected = false;
   }
 

@@ -122,7 +122,7 @@ class Login { // This class handles the whole user login and registration proces
   }
 }
 
-export function mountLogin(root: HTMLElement): () => void {
+export const mountLogin = (root: HTMLElement) => {
   const userManager = new UserManager();
   new Login(root, userManager).init();
   return () => {

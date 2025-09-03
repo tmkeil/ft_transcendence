@@ -63,6 +63,7 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 
 	// When a client disconnects, remove it from the clients set
 	ws.on("close", () => {
+    console.log("Client disconnected in backend");
 		clients.delete(ws);
 	});
 
@@ -72,7 +73,6 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
       const parsed = JSON.parse(message);
       const { type } = parsed;
       console.log("parsed message:", parsed);
-      console.log("Backend: Received message type:", type);
 
       if (type === "chat") {
         const { userId, content } = parsed;
@@ -98,18 +98,23 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
         ws.send(JSON.stringify({ type: "join", roomId: roomId, side: ws._side, gameConfig: room.config, state: room.state }));
 
       } else if (type === "leave") {
-        const { roomId, userId } = parsed;
-        console.log(`player id: ${userId} wants to leave the channel: ${roomId}`);
-        const room = getOrCreateRoom(roomId);
-        if (!room.players.has(ws)) return;
-        console.log("Test1");
-        ws.send(JSON.stringify({ type: "chat", userId: -1, content: `Left room ${roomId}.` }));
-        console.log("Test2");
-        broadcaster(room.players.keys(), ws, JSON.stringify({ type: "chat", userId: userId, content: `User ${userId} left room ${roomId}` }));
-        console.log("Test3");
+        const { userId } = parsed;
+        // console.log(`player id: ${userId} wants to leave the channel: ${roomId}`);
+        const room = rooms.get(ws._roomId);
+        if (!room || !room.players.has(ws)) return;
+        if (room.loopInterval) {
+          clearInterval(room.loopInterval);
+          room.loopInterval = null;
+        }
+        room.state.started = false;
+        ws.send(JSON.stringify({ type: "chat", userId: -1, content: `Left room ${ws._roomId}.` }));
+        broadcaster(room.players.keys(), ws, JSON.stringify({ type: "chat", userId: userId, content: `User ${userId} left room ${ws._roomId}` }));
         broadcaster(room.players.keys(), null, JSON.stringify({ type: "reset" }));
-        console.log("Test4");
         room.removePlayer(ws);
+        if (room.players.size === 0) rooms.delete(ws._roomId);
+        try {
+          ws.close();
+        } catch {}
 
       } else if (type === "ready") {
         const room = rooms.get(ws._roomId);
@@ -127,6 +132,9 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 
         if (ws._side === "left")  room.inputs.left  = direction;
         else if (ws._side === "right") room.inputs.right = direction;
+
+      } else if (type === "teardown") {
+        // console.log("Teardown message from client:", parsed);
       }
     } catch (e) {
       console.error("Invalid JSON received:", message);
