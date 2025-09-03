@@ -7,6 +7,7 @@ import { Settings } from "../game/GameSettings.js";
 
 export const HomeController = (root: HTMLElement) => {
   // Elements from the DOM
+  console.log("Home page");
   const chatBox = root.querySelector<HTMLDivElement>("#chat")!;
   const log = root.querySelector<HTMLTextAreaElement>("#log")!;
   const msgInput = root.querySelector<HTMLInputElement>("#msg")!;
@@ -54,11 +55,11 @@ export const HomeController = (root: HTMLElement) => {
   });
 
   // When the ws receives the message type join from the server, subscribe these callback/lambda functions to the message type via ws.ts
-  ws.on("join", (m: { type: "join"; side: string; gameConfig: Derived; state: ServerState }) => {
+  ws.on("join", (m: { type: "join"; roomId: string; side: string; gameConfig: Derived; state: ServerState }) => {
     console.log("Server message: joined on side: ", m.side);
     game.setConfig(m.gameConfig);
     game.applyServerState(m.state);
-    appendLog(`Joined as ${m.side === "left" ? "P1 (left)" : "P2 (right)"}!`);
+    appendLog(`Joined ${m.roomId} as ${m.side === "left" ? "P1 (left)" : "P2 (right)"}!`);
   });
 
   ws.on("reset", (m: { type: "reset" }) => {
@@ -67,7 +68,6 @@ export const HomeController = (root: HTMLElement) => {
 
   // When the ws receives the message type start from the server, subscribe these callback/lambda functions to the message type via ws.ts
   ws.on("start", (m: { type: "start"; timestamp: number }) => {
-    console.log("Server message: start the game at", m.timestamp);
     game.setTimestamp(m.timestamp);
     appendLog('Game started!');
   });
@@ -104,17 +104,18 @@ export const HomeController = (root: HTMLElement) => {
 
   // Ready up and send it to the server
   const onStart = () => {
-    console.log("Readying up. Playing against", settings.getOpponent());
     if (game.getInputHandler().isInputRemote() && ws)
       ws.send({ type: "ready", userId: userId });
-    else
+    else if (settings.getOpponent() !== 'REMOTE') {
       game.getGameStatus().playing = true;
+      appendLog(`Local game started! Playing against ${settings.getOpponent()}`);
+    }
   };
 
   const onStop = () => {
-    console.log("Stop button clicked");
+    if (game.getGameStatus().playing)
+      appendLog(`Local game stopped!`);
     game.stopGame();
-
   };
 
   // When clicking on the AI Opponent button, set the opponent to AI and set remote input to false

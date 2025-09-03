@@ -7,7 +7,7 @@ type Msg =
   | { type: "hello"; userId: number }
   | { type: 'chat'; userId: number; content: string; }
   | { type: 'state'; state: ServerState; }
-  | { type: 'join'; side: string; gameConfig: Derived; state: ServerState; }
+  | { type: 'join'; roomId: string; side: string; gameConfig: Derived; state: ServerState; }
   | { type: 'start'; timestamp: Number; }
   | { type: 'leave'; roomId: string }
   | { type: 'reset' }

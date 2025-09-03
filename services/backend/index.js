@@ -87,10 +87,15 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
         // Join a game room
         const { roomId, userId } = parsed;
         const room = getOrCreateRoom(roomId);
+        if (room.players.size == 2)
+        {
+          ws.send(JSON.stringify({ type: "chat", userId: -1, content: `Room is already full. Can't join room` }));
+          return ;
+        }
         if (room.players.has(ws)) return;
         room.addPlayer(userId, ws);
         // Response to the client, which side the player is on and the current state to render the initial game state
-        ws.send(JSON.stringify({ type: "join", side: ws._side, gameConfig: room.config, state: room.state }));
+        ws.send(JSON.stringify({ type: "join", roomId: roomId, side: ws._side, gameConfig: room.config, state: room.state }));
 
       } else if (type === "leave") {
         const { roomId, userId } = parsed;
@@ -98,7 +103,7 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
         const room = getOrCreateRoom(roomId);
         if (!room.players.has(ws)) return;
         console.log("Test1");
-        ws.send(JSON.stringify({ type: "chat", userId: -1, content: `Me: Left room ${roomId}.` }));
+        ws.send(JSON.stringify({ type: "chat", userId: -1, content: `Left room ${roomId}.` }));
         console.log("Test2");
         broadcaster(room.players.keys(), ws, JSON.stringify({ type: "chat", userId: userId, content: `User ${userId} left room ${roomId}` }));
         console.log("Test3");
