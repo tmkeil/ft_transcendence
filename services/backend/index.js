@@ -72,7 +72,7 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
     try {
       const parsed = JSON.parse(message);
       const { type } = parsed;
-      console.log("parsed message:", parsed);
+      console.log(`parsed message: ${JSON.stringify(parsed)}. Type: ${type}`);
 
       if (type === "chat") {
         const { userId, content } = parsed;
@@ -95,7 +95,9 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
       } else if (type === "leave") {
         const { userId } = parsed;
         // console.log(`player id: ${userId} wants to leave the channel: ${roomId}`);
-        const room = rooms[ws._roomId];
+        const index = rooms.findIndex(room => room.id === ws._roomId);
+        const room = rooms[index];
+        ws._roomId = null;
         if (!room || !room.players.has(ws)) return;
         if (room.loopInterval) {
           clearInterval(room.loopInterval);
@@ -106,23 +108,38 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
         broadcaster(room.players.keys(), ws, JSON.stringify({ type: "chat", userId: userId, content: `User ${userId} left room ${ws._roomId}` }));
         broadcaster(room.players.keys(), null, JSON.stringify({ type: "reset" }));
         room.removePlayer(ws);
-        if (room.players.size === 0) rooms.delete(ws._roomId);
+        if (room.players.size === 0) {
+          const index = rooms.findIndex(room => room.id === ws._roomId);
+          rooms.splice(index, 1);
+          // rooms.delete(ws._roomId);
+        }
         try {
           ws.close();
         } catch {}
 
       } else if (type === "ready") {
-        const room = rooms.get(ws._roomId);
+        const {userId} = parsed;
+        console.log("In ready1");
+        console.log("ws._roomId:", ws._roomId);
+        const index = rooms.findIndex(room => room.id === ws._roomId);
+        const room = rooms[index];
         // If the player is already ready
+        console.log("Room found: ", room);
         if (room.getPlayer(ws).ready) return;
+        console.log("Player is not ready yet");
         room.getPlayer(ws).ready = true;
+        console.log("In ready2");
         startLoop(room);
+        console.log("In ready3");
+        console.log(`Sending ready state of user ${userId} to all players in room ${room.id}`);
         broadcaster(room.players.keys(), null, JSON.stringify({ type: "ready", userId: userId }));
+        console.log(`Message sent to all players in room ${room.id} that user ${userId} is ready`);
 
       } else if (type === "input") {
         console.log("Backend: Received input from client:", parsed);
         const { direction } = parsed;
-        const room = rooms.get(ws._roomId);
+        const index = rooms.findIndex(room => room.id === ws._roomId);
+        const room = rooms[index];
         if (!room || !room.state.started) return;
 
         if (ws._side === "left")  room.inputs.left  = direction;
@@ -209,6 +226,7 @@ export function startLoop(room) {
   // If both players are ready, start the game
   if (room.players.size === 2 && Array.from(room.players.values()).every((p) => p.ready)) {
     room.state.started = true;
+    console.log("Both players are ready, starting the game in room", room.id);
     // Initialize timestamp
     room.state.timestamp = Date.now();
     // Start the game loop, which updates the game state and broadcasts it to the players every 16ms
@@ -223,13 +241,18 @@ export function startLoop(room) {
 export function stopRoom(room, roomId) {
   // Destroy the room and stop the game loop
   if (room.loopInterval) clearInterval(room.loopInterval);
-  rooms.delete(roomId);
+  const index = rooms.findIndex(room => room.id === ws._roomId);
+  rooms.splice(index, 1);
+  //         // rooms.delete(ws._roomId);
+  //       }
+  // rooms.delete(roomId);
 }
 
 // This function is called every 33ms to update the game state based on the current state and player input.
 // Then broadcast it to the players, so that they can render the new state
 export function loop(room) {
 
+  // console.log("Game room tick. GameStatus:", room.state);
   const config = room.config;
   movePaddles(room.tempState, room.inputs, config);
   moveBall(room.tempState, room.ballV, config);

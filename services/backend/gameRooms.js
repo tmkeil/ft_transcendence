@@ -1,11 +1,12 @@
 import { buildWorld, resetBall } from "@app/shared";
 
+let nextRoomId = 0;
 export const rooms = [];
 // export const rooms = new Map();
 
 export class Room {
   constructor() {
-    this.id = rooms.length;
+    this.id = nextRoomId++;
     this.players = new Map();
     this.state = this.initState();
     this.tempState = { p1Y: 0, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
@@ -46,9 +47,15 @@ export class Room {
   getPlayer(ws) {
     return this.players.get(ws);
   }
+
+  get(roomId) {
+    return rooms[roomId];
+  }
 }
 
 export function getOrCreateRoom() {
+  // const index = rooms.findIndex(room => room.id === ws._roomId);
+  // const room = rooms[index];
   let room = rooms.length > 0 ? rooms[rooms.length - 1] : null;
   if (!room) {
     room = new Room();
@@ -56,3 +63,5 @@ export function getOrCreateRoom() {
   }
   return room;
 }
+
+// const room = rooms.get(ws._roomId);
