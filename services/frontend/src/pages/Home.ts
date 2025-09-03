@@ -14,8 +14,6 @@ export const HomeController = (root: HTMLElement) => {
   const sendBtn = root.querySelector<HTMLButtonElement>("#send")!;
   const joinBtn = root.querySelector<HTMLButtonElement>("#joinRoomButton")!;
   const leaveBtn = root.querySelector<HTMLButtonElement>("#leaveRoomButton")!;
-  const roomInput = root.querySelector<HTMLInputElement>("#roomName")!;
-  const roomInputLeave = root.querySelector<HTMLInputElement>("#roomNametoLeave")!;
   const startBtn = root.querySelector<HTMLButtonElement>("#startBtn")!;
   const stopBtn = root.querySelector<HTMLButtonElement>("#stopBtn")!;
   const aiBtn = root.querySelector<HTMLButtonElement>("#aiOpponentButton")!;
@@ -88,9 +86,7 @@ export const HomeController = (root: HTMLElement) => {
   const onJoin = () => {
     if (!ws)
       return;
-    const room = roomInput.value.trim() || "room1";
-    console.log("Joining room and sending to server:", room);
-    ws.send({ type: "join", roomId: room, userId: userId });
+    ws.send({ type: "join", userId: userId });
   };
 
   // Leave a game room and send it to the server
