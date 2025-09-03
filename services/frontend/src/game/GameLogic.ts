@@ -19,7 +19,15 @@ export class GameLogic {
 		this.gameStatus = gameStatus;
 		this.keys = keys;
 		this.settings = settings;
-		this.tempState = { p1X: scene.paddle1.position.x, p1Y: scene.paddle1.position.y, p2X: scene.paddle2.position.x, p2Y: scene.paddle2.position.y, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };	
+		this.tempState = {
+			p1X: scene.paddle1.position.x,
+			p1Y: scene.paddle1.position.y,
+			p2X: scene.paddle2.position.x,
+			p2Y: scene.paddle2.position.y,
+			ballX: 0, ballY: 0,
+			scoreL: 0, scoreR: 0,
+			p1_spd: 0, p2_spd: 0
+		};	
 	}
 
 	public setScene(scene: GameScene): void {
@@ -38,23 +46,6 @@ export class GameLogic {
 	{
 		if (this.settings.getOpponent() === 'REMOTE')
 		{
-			// // REMOTE: Use shared logic.ts for all state updates
-			// movePaddles(this.tempState, {
-			// 	left: this.paddleLogic.playerPaddleControl(this.scene.paddle1),
-			// 	right: this.paddleLogic.playerPaddleControl(this.scene.paddle2)
-			// }, this.conf);
-
-			// moveBall(this.tempState, this.ballV, this.conf, true);
-
-			// // Sync tempState to scene
-			// this.scene.paddle1.position.z = this.tempState.p1Y;
-			// this.scene.paddle2.position.z = this.tempState.p2Y;
-			// this.scene.ball.position.x = this.tempState.ballX;
-			// this.scene.ball.position.z = this.tempState.ballY;
-
-			// this.gameStatus.scoreL = this.tempState.scoreL;
-			// this.gameStatus.scoreR = this.tempState.scoreR;
-
 			this.updateScores();
 			return;
 		}

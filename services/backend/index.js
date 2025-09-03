@@ -255,10 +255,14 @@ export function loop(room) {
   // console.log("Game room tick. GameStatus:", room.state);
   const config = room.config;
   movePaddles(room.tempState, room.inputs, config);
-  moveBall(room.tempState, room.ballV, config);
+  // run server-side ball physics in "real" mode so paddle collisions and scoring are applied
+  moveBall(room.tempState, room.ballV, config, true);
 
   room.state.p1Y = room.tempState.p1Y;
   room.state.p2Y = room.tempState.p2Y;
+  // Ensure paddle X positions are propagated to the public state so clients know paddle horizontal positions
+  if (typeof room.tempState.p1X !== 'undefined') room.state.p1X = room.tempState.p1X;
+  if (typeof room.tempState.p2X !== 'undefined') room.state.p2X = room.tempState.p2X;
   room.state.ballX = room.tempState.ballX;
   room.state.ballY = room.tempState.ballY;
   room.state.scoreL = room.tempState.scoreL;

@@ -49,7 +49,7 @@ export function moveBall(tempState: TmpState, ballV: { hspd: number; vspd: numbe
 	tempState.ballY = Math.max(-FIELD_HEIGHT / 2, Math.min(FIELD_HEIGHT / 2, tempState.ballY));
 
 	//	Collision with left paddle
-	if (tempState.ballX <= (tempState.p1X - ballV.hspd))
+	if (tempState.ballX <= (tempState.p1X +2 - ballV.hspd))
 	{
 		if (!realMode)
 			return;
@@ -66,11 +66,11 @@ export function moveBall(tempState: TmpState, ballV: { hspd: number; vspd: numbe
 			ballV.vspd = v.vspd;
 		}
 		else	//	Block
-			ballV.hspd *= -1;
+			ballV.hspd *= -1.01;
 	}
 
 	//	Collision with right paddle
-	if (tempState.ballX >= (tempState.p2X - ballV.hspd))
+	if (tempState.ballX >= (tempState.p2X -2 - ballV.hspd))
 	{
 		if (!realMode)
 			return;
@@ -87,11 +87,11 @@ export function moveBall(tempState: TmpState, ballV: { hspd: number; vspd: numbe
 			ballV.vspd = v.vspd;
 		}
 		else	//	Block
-			ballV.hspd *= -1;
+			ballV.hspd *= -1.01;
 	}
 
 	//	Bounce off upper and bottom wall
-	if (tempState.ballY <= -FIELD_HEIGHT/2 || tempState.ballY >= FIELD_HEIGHT/2)
+	if (tempState.ballY <= -FIELD_HEIGHT/2+1 || tempState.ballY >= FIELD_HEIGHT/2-1)
 		ballV.vspd *= -1;
 }
 

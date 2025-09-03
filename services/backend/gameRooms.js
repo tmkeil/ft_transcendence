@@ -8,17 +8,22 @@ export class Room {
   constructor() {
     this.id = nextRoomId++;
     this.players = new Map();
-    this.state = this.initState();
-    this.tempState = { p1Y: 0, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
+  // build config first so we can derive paddle X positions
+  this.config = buildWorld();
+  this.state = this.initState();
+  const halfW = this.config.FIELD_WIDTH / 2;
+  // Place paddles slightly inside the left/right edges so server physics can detect collisions
+  this.tempState = { p1X: -halfW + 1, p1Y: 0, p2X: halfW - 1, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
     this.ballV = resetBall();
     this.loopInterval = null;
     this.inputs = { left: 0, right: 0 };
-    this.config = buildWorld();
     // As optional parameters to override the default values e.g. buildWorld({ FIELD_WIDTH: 120, FIELD_HEIGHT: 50 })
   }
 
   initState() {
     return {
+  p1X: 0,
+  p2X: 0,
       p1Y: 0,
       p2Y: 0,
       ballX: 0,
