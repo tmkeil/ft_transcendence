@@ -26,14 +26,21 @@ await fastify.register(websocket);
 // Call the initDb function to create the tables by the time the server starts
 initDb(db);
 
-fastify.get("/users", (request, reply) => {
-  db.all("SELECT * FROM users", [], (err, rows) => {
-    if (err) {
-      reply.code(500).send({ error: err.message });
-    } else {
-      reply.send(rows);
-    }
+fastify.get("/api/users", (request, reply) => {
+    const fields = "id, username, wins, losses, level, created_at, status";
+
+      db.all(`SELECT ${fields} FROM users ORDER BY created_at DESC`, [], (err, rows) => {
+    if (err) return reply.code(500).send({ error: err.message });
+    reply.send(rows);
   });
+
+  // db.all("SELECT * FROM users", [], (err, rows) => {
+  //   if (err) {
+  //     reply.code(500).send({ error: err.message });
+  //   } else {
+  //     reply.send(rows);
+  //   }
+  // });
 });
 
 // Database inspection endpoint
@@ -241,11 +248,10 @@ export function startLoop(room) {
 export function stopRoom(room, roomId) {
   // Destroy the room and stop the game loop
   if (room.loopInterval) clearInterval(room.loopInterval);
-  const index = rooms.findIndex(room => room.id === ws._roomId);
-  rooms.splice(index, 1);
-  //         // rooms.delete(ws._roomId);
-  //       }
-  // rooms.delete(roomId);
+  const index = rooms.findIndex(r => r.id === room.id);
+  if (index !== -1) {
+    rooms.splice(index, 1);
+  }
 }
 
 // This function is called every 33ms to update the game state based on the current state and player input.

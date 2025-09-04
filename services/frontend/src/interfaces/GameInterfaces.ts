@@ -12,6 +12,16 @@
 // started: false,
 // timestamp: null
 
+export interface UserData {
+	id: number;
+	username: string;
+	email: string;
+	wins: number;
+	losses: number;
+	level: number;
+	created_at: string;
+}
+
 export interface ServerState {
 	p1Y: number;
 	p2Y: number;

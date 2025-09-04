@@ -7,6 +7,7 @@ const routes: Record<string, Route> = {
     "/login": { template: "/pages/Login.html", auth: false },
     "/register": { template: "/pages/Register.html", auth: false },
     "/profile": { template: "/pages/Profile.html", auth: true },
+    "/dashboard": { template: "/pages/Dashboard.html", auth: true },
     "/404": { template: "/pages/404.html", auth: false },
 };
 
@@ -68,11 +69,11 @@ async function handleLocation(): Promise<void> {
             // Call the mountLogin to set up event listeners and manage the login page
             // And execute the returned code, when navigating away from the login page
             mountLogin(root);
+            teardown = () => {};
+        } else if (path === "/dashboard") {
+            const { mountDashboard } = await import("/src/pages/Dashboard.js");
+            teardown = mountDashboard(root);
         }
-        // else if (path === "/dashboard") {
-        //     const { mountDashboard } = await import("/src/pages/Dashboard.js");
-        //     teardown = mountDashboard(root);
-        // }
     } catch (e) {
         console.error(e);
     }

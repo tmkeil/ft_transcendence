@@ -12,7 +12,8 @@ export function initDb(db) {
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			wins INTEGER DEFAULT 0,
 			losses INTEGER DEFAULT 0,
-			draws INTEGER DEFAULT 0
+			level INTEGER DEFAULT 1,
+			status TEXT DEFAULT 'ok'
 			)
 		`);
 		// Create messages table with id <INTEGER PRIMARY KEY>, userId <INTEGER>, content <TEXT>, timestamp <DATETIME DEFAULT CURRENT_TIMESTAMP>
