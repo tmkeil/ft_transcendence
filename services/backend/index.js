@@ -4,7 +4,7 @@ import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import bcrypt from "bcryptjs";
 import { getOrCreateRoom, rooms } from "./gameRooms.js";
-import { initDb } from "./initDatabases.js";
+import { initDb, fetchAll, addElementToTable, removeElementFromTable } from "./initDatabases.js";
 import { broadcaster } from "./utils.js";
 import { buildWorld, movePaddles, moveBall } from "@app/shared";
 // import * as Shared from "@app/shared";
@@ -26,37 +26,75 @@ await fastify.register(websocket);
 // Call the initDb function to create the tables by the time the server starts
 initDb(db);
 
-fastify.get("/api/users", (request, reply) => {
-    const fields = "id, username, wins, losses, level, created_at, status";
-
-      db.all(`SELECT ${fields} FROM users ORDER BY created_at DESC`, [], (err, rows) => {
-    if (err) return reply.code(500).send({ error: err.message });
+fastify.get("/api/users", async (request, reply) => {
+  let params = [];
+  const fields = "id, username, wins, losses, level, created_at, status, friends, blocks";
+  let sql = `SELECT ${fields} FROM users ORDER BY created_at DESC`;
+  try {
+    const rows = await fetchAll(db, sql, params);
+    console.log("Fetched users: ", rows);
     reply.send(rows);
-  });
-
-  // db.all("SELECT * FROM users", [], (err, rows) => {
-  //   if (err) {
-  //     reply.code(500).send({ error: err.message });
-  //   } else {
-  //     reply.send(rows);
-  //   }
-  // });
+  } catch (err) {
+    reply.code(500).send({ error: err.message });
+  }
 });
 
-// Database inspection endpoint
-// fastify.get("/db/info", (request, reply) => {
-//   db.get("SELECT COUNT(*) as count FROM users", [], (err, row) => {
-//     if (err) {
-//       reply.code(500).send({ error: err.message });
-//     } else {
-//       reply.send({
-//         table: "users",
-//         userCount: row.count,
-//         timestamp: new Date().toISOString(),
-//       });
-//     }
-//   });
-// });
+// Adding friend Ids to the user's friend list
+fastify.post("/api/users/:id/sendFriendRequest", async (request, reply) => {
+  // Extract userId from the URL parameters
+  const userId = parseInt(request.params.id);
+  // Extract friendId from the request body
+  const {friendId} = request.body;
+  if (!friendId || !userId) {
+    return reply.code(400).send({ error: "Invalid user ID or friend ID" });
+  }
+});
+
+fastify.post("/api/users/:id/unfriend", async (request, reply) => {
+  const userId = parseInt(request.params.id);
+  const {friendId} = request.body;
+  if (!friendId || !userId) {
+    return reply.code(400).send({ error: "Invalid user ID or friend ID" });
+  }
+  console.log("Unfriending user: ", friendId, "for user: ", userId);
+  try {
+    await removeElementFromTable(db, "friends", userId, friendId);
+    reply.send({ success: true });
+  } catch (err) {
+    reply.code(500).send({ error: err.message });
+  }
+});
+
+// Adding a block Id to the user's block list
+fastify.post("/api/users/:id/block", async (request, reply) => {
+  const userId = parseInt(request.params.id);
+  const {blockId} = request.body;
+  if (!blockId || !userId) {
+    return reply.code(400).send({ error: "Invalid user ID or block ID" });
+  }
+  console.log("Blocking user: ", blockId, "for user: ", userId);
+  try {
+    await addElementToTable(db, "blocks", userId, blockId);
+    reply.send({ success: true });
+  } catch (err) {
+    reply.code(500).send({ error: err.message });
+  }
+});
+
+fastify.post("/api/users/:id/unblock", async (request, reply) => {
+  const userId = parseInt(request.params.id);
+  const {unblockId} = request.body;
+  if (!unblockId || !userId) {
+    return reply.code(400).send({ error: "Invalid user ID or unblock ID" });
+  }
+  console.log("Unblocking user: ", unblockId, "for user: ", userId);
+  try {
+    await removeElementFromTable(db, "blocks", userId, unblockId);
+    reply.send({ success: true });
+  } catch (err) {
+    reply.code(500).send({ error: err.message });
+  }
+});
 
 // WebSocket Set
 const clients = new Set();
