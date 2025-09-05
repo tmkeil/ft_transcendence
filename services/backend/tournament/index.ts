@@ -1,5 +1,5 @@
 // filepath: /home/jgraf/Documents/42/transcendence/services/backend/tournament/interfaces/TournamentInterfaces.ts
-import { Room } from "../../gameRooms.js";
+import { Room } from "../../gameRooms.js"
 
 export interface Player {
     id: number;
@@ -26,7 +26,10 @@ export interface Tournament {
     matches: Match[];
     round: number;
     status: "pending" | "active" | "completed";
-    registerPlayer(player: Player): void;
-    startMatches(): void;
-    handleMatchOutcome(matchId: string, winnerId: number): void;
+    currentMatch: Match | null; // Track the current match
+    start(): void; // Start the tournament
+    end(): void; // End the tournament
+    registerPlayer(player: Player): void; // Register a player
+    assignMatches(): void; // Assign matches
+    handleMatchOutcome(matchId: number, winnerId: number): void; // Handle match outcomes
 }

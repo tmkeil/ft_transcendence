@@ -22,8 +22,8 @@ export class Room {
 
   initState() {
     return {
-  p1X: 0,
-  p2X: 0,
+      p1X: 0,
+      p2X: 0,
       p1Y: 0,
       p2Y: 0,
       ballX: 0,

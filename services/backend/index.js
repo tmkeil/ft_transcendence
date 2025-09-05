@@ -7,15 +7,11 @@ import { getOrCreateRoom, rooms } from "./gameRooms.js";
 import { initDb } from "./initDatabases.js";
 import { broadcaster } from "./utils.js";
 import { buildWorld, movePaddles, moveBall } from "@app/shared";
-import { tournamentRoutes } from "./tournament/managers/TournementRoutes.js"
 // import * as Shared from "@app/shared";
 // or import specific identifiers, e.g.:
 // import { Config } from "@app/shared";
 
 // import { startGameLoop } from "./game.js";
-
-
-await tournamentRoutes(fastify);
 
 const fastify = Fastify({ logger: true });
 // const db = new sqlite3.Database('./database.sqlite');

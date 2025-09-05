@@ -4,12 +4,11 @@ import { Room } from '../gameRooms.js';
 
 export class TournamentManager {
     private tournament: Tournament;
-    private waitingPlayers: Player[] = [];
-    private currentMatch: Match | null = null;
+    private currentMatchIndex: number;
 
-    constructor(tournamentId: string, size: 4 | 8 | 16) {
+    constructor(size: 4 | 8 | 16) {
         this.tournament = {
-            id: tournamentId,
+            id: this.generateTournamentId(),
             rooms: [],
             size: size,
             players: [],
@@ -17,55 +16,62 @@ export class TournamentManager {
             round: 1,
             status: "pending",
         };
+        this.currentMatchIndex = 0;
+    }
+
+    private generateTournamentId(): string {
+        return `tournament-${Date.now()}`;
     }
 
     public registerPlayer(player: Player): void {
         if (this.tournament.players.length < this.tournament.size) {
             this.tournament.players.push(player);
-            this.waitingPlayers.push(player);
-            console.log(`Player ${player.name} registered for tournament ${this.tournament.id}.`);
-            if (this.waitingPlayers.length === this.tournament.size) {
+            console.log(`Player ${player.name} registered for tournament.`);
+            if (this.tournament.players.length === this.tournament.size) {
                 this.startTournament();
             }
         } else {
-            console.log(`Tournament ${this.tournament.id} is full.`);
+            console.log("Tournament is full.");
         }
     }
 
     private startTournament(): void {
         this.tournament.status = "active";
-        console.log(`Tournament ${this.tournament.id} has started with players:`, this.tournament.players);
         this.scheduleMatches();
     }
 
     private scheduleMatches(): void {
-        const shuffledPlayers = this.shuffleArray(this.waitingPlayers);
+        const shuffledPlayers = this.shuffleArray(this.tournament.players);
         for (let i = 0; i < shuffledPlayers.length; i += 2) {
             const match: Match = {
-                id: this.tournament.matches.length + 1,
+                id: this.currentMatchIndex++,
                 room: new Room(), // Create a new room for the match
                 round: this.tournament.round,
                 time: Date.now(),
                 p1: shuffledPlayers[i],
-                p2: shuffledPlayers[i + 1],
+                p2: shuffledPlayers[i + 1] || null,
                 winner: null,
                 loser: null,
                 status: "pending",
             };
             this.tournament.matches.push(match);
             this.tournament.rooms.push(match.room);
-            console.log(`Match scheduled: ${match.p1.name} vs ${match.p2.name}`);
+            console.log(`Match scheduled: ${match.p1?.name} vs ${match.p2?.name}`);
         }
-        this.startMatches();
+        this.startNextMatch();
     }
 
-    private startMatches(): void {
-        this.tournament.matches.forEach(match => {
-            match.room.addPlayer(match.p1.id, match.p1); // Add players to the room
-            match.room.addPlayer(match.p2.id, match.p2);
+    private startNextMatch(): void {
+        const match = this.tournament.matches.find(m => m.status === "pending");
+        if (match) {
             match.status = "active";
-            console.log(`Match ${match.id} is now active.`);
-        });
+            // Redirect players to their match room
+            match.room.addPlayer(match.p1?.id, match.p1?.name);
+            if (match.p2) {
+                match.room.addPlayer(match.p2.id, match.p2.name);
+            }
+            console.log(`Match started: ${match.p1?.name} vs ${match.p2?.name}`);
+        }
     }
 
     public reportMatchOutcome(matchId: number, winnerId: number): void {
@@ -74,19 +80,20 @@ export class TournamentManager {
             match.winner = match.p1?.id === winnerId ? match.p1 : match.p2;
             match.loser = match.p1?.id === winnerId ? match.p2 : match.p1;
             match.status = "completed";
-            console.log(`Match ${matchId} completed. Winner: ${match.winner?.name}`);
-            this.checkTournamentOutcome();
+            console.log(`Match completed: ${match.winner?.name} wins against ${match.loser?.name}`);
+            this.advanceWinner(match.winner);
         }
     }
 
-    private checkTournamentOutcome(): void {
-        const completedMatches = this.tournament.matches.filter(m => m.status === "completed");
-        if (completedMatches.length === this.tournament.matches.length) {
-            console.log(`Tournament ${this.tournament.id} completed.`);
-            this.tournament.status = "completed";
-        } else {
-            this.tournament.round++;
-            this.scheduleMatches(); // Schedule next round matches
+    private advanceWinner(winner: Player | null): void {
+        if (winner) {
+            this.tournament.players.push(winner); // Add winner to the next round
+            if (this.tournament.players.length < this.tournament.size) {
+                this.scheduleMatches(); // Schedule next matches
+            } else {
+                this.tournament.status = "completed"; // Tournament finished
+                console.log("Tournament completed.");
+            }
         }
     }
 
