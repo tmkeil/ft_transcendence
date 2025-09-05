@@ -1,25 +1,67 @@
-<h1>Transcendence Pong</h1>
-<canvas id="gameCanvas"></canvas>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <title>Transcendence</title>
+</head>
+<body>
+    <!-- Dashboard (Everything is hardcoded for looks) -->
+    <div class="dashboard">
+      <h3>My Dashboard</h3>
+      <div class="profile">
+        <div class="profile-pic"></div>
+        <div class="profile-info">
+          <p>KixiK</p>
+          <p>level 4</p>
+        </div>
+      </div>
+      <div class="stats">
+        <p>Stats:</p>
+        <p>Wins - 10</p>
+        <p>Loses - 7</p>
+        <p>Tournaments Won - 0</p>
+      </div>
+      <button class="logout">Log Out</button>
+    </div>
 
-<div id="gameControls">
-  <button id="startBtn">Start Game</button>
-  <button id="stopBtn">Stop Game</button>
-  <button id="resetBtn">Reset Game</button>
-</div>
+    <!-- Main -->
+    <div class="main-content">
+      <div class="main-title">TRANSCENDENCE</div>
+      <div class="menu">
+        <button data-tooltip="Play against a friend locally on the same keyboard.">LOCAL 1v1</button>
+        <button data-tooltip="Challenge another player online.">ONLINE 1v1</button>
+        <button data-tooltip="Compete in a knockout-style tournament.">TOURNAMENT MODE</button>
+        <button data-tooltip="Practice against an AI opponent.">SINGLEPLAYER AI MODE</button>
+      </div>
+      <div class="tooltip">
+        Hover over a play option to see details here.
+      </div>
+    </div>
 
-<div id="opponentSelection">
-  <button id="aiOpponentButton">Play vs AI</button>
-  <button id="localOpponentButton">Play vs Local Player</button>
-  <button id="remoteOpponentButton">Play vs Remote Player</button>
-</div>
+    <!-- Friends (Everything is hardcoded for looks) -->
+    <div class="sidebar">
+      <div class="notifications">
+        <span>Notifications</span>
+        <div class="notif-icon">
+          ✉️
+          <div class="notif-dot"></div>
+        </div>
+      </div>
 
-<div id="roomSelection">
-  <input type="text" id="roomName" placeholder="Enter room name" />
-  <button id="joinRoomButton">Join Room</button>
-</div>
+      <div class="friends">
+        <h4>Friends</h4>
+        <p><span>cimex</span><span>chat</span></p>
+        <p><span>tobias</span><span>chat</span></p>
+        <p><span>betul</span><span>chat</span></p>
+        <p><span>mafalda</span><span>chat</span></p>
+      </div>
 
-<div id="chat">
-  <textarea id="log" cols="50" rows="10" readonly></textarea><br />
-  <input id="msg" type="text" placeholder="Type a message..." />
-  <button id="send">Send</button>
-</div>
+      <button class="user-dashboard-btn">User Dashboard</button>
+    </div>
+</body>
+<script src="../scripts/tooltips.js"></script>
+</html>

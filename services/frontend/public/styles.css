@@ -1,0 +1,172 @@
+body {
+  color: #eee;
+  font-family: "Major Mono Display", monospace;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  background: linear-gradient(180deg, #111 0%, #111 40%, #8B0000 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 12s ease infinite;
+
+  /* outermost rectangle */
+  border: 2px solid #ccc;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 50% 0%; }
+  50% { background-position: 50% 100%; }
+  100% { background-position: 50% 0%; }
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 250px 1fr 250px;
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 20px auto;
+  box-sizing: border-box;
+}
+
+.dashboard,
+.main-content,
+.sidebar {
+  background-color: #2a2a2a;
+  border: 2px solid #ccc;
+  padding: 15px;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.profile-pic {
+  width: 50px;
+  height: 50px;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.stats {
+  margin-top: 15px;
+}
+
+.logout {
+  margin-top: 20px;
+  display: block;
+  width: 100%;
+  padding: 8px;
+  border: 2px solid #ccc;
+  background: #333;
+  color: #eee;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.logout:hover {
+  background: #3fbf7f;
+  border-color: #3fbf7f;
+}
+
+/* Center main */
+.main-content {
+  text-align: center;
+  background-color: #2a2a2a;
+  border: 2px solid #ccc;
+  padding: 20px;
+}
+
+.main-title {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.menu button {
+  display: block;
+  width: 80%;
+  margin: 10px auto;
+  padding: 10px;
+  font-size: 1rem;
+  border: 2px solid #ccc;
+  background: #333;
+  color: #eee;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.menu button:hover {
+  background: #3fbf7f;
+  border-color: #3fbf7f;
+  color: #fff;
+}
+
+.tooltip {
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: #bbb;
+  min-height: 40px;
+}
+
+/* Sidebar */
+.sidebar {
+  border: 2px solid #ccc;
+  padding: 15px;
+  background-color: #2a2a2a;
+}
+
+.notifications {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 2px solid #ccc;
+  padding: 8px;
+  margin-bottom: 20px;
+  background-color: #333;
+}
+
+.notif-icon {
+  position: relative;
+}
+
+.notif-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  background: red;
+  border-radius: 50%;
+}
+
+.friends {
+  margin-top: 15px;
+}
+
+.friends p {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 0;
+}
+
+.user-dashboard-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 8px;
+  border: 2px solid #ccc;
+  background: #333;
+  color: #eee;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.user-dashboard-btn:hover {
+  background: #3fbf7f;
+  border-color: #3fbf7f;
+  color: #fff;
+}
