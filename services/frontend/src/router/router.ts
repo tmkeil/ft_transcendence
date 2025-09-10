@@ -11,11 +11,9 @@ const routes: Record<string, Route> = {
 };
 
 // If the user is authenticated (has a userId in localStorage)
-const isAuthed = () => {
-  if (localStorage.getItem("userId")) {
-    return true;
-  }
-  return false;
+const isAuthed = async () => {
+  const res = await fetch("/api/me", { method: "GET" });
+  return res.ok;
 };
 
 // This updates the browser's history and loads the new page content.

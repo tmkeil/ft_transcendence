@@ -9,8 +9,7 @@ export function initDb(db) {
 			username TEXT UNIQUE NOT NULL,
 			email TEXT UNIQUE NOT NULL,
 			password_hash TEXT NOT NULL,
-			otp_code TEXT UNIQUE,
-			otp_expires INTEGER,
+			totp_secret TEXT UNIQUE,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 			)
 		`);

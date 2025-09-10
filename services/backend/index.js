@@ -1,10 +1,8 @@
 import Fastify from "fastify";
+import fastifyCookie from "@fastify/cookie";
 import sqlite3 from "sqlite3";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
 import { getOrCreateRoom, rooms } from "./gameRooms.js";
 import { initDb } from "./initDatabases.js";
 import { broadcaster } from "./utils.js";
@@ -14,47 +12,6 @@ import { buildWorld, movePaddles, moveBall } from "@app/shared";
 // import { Config } from "@app/shared";
 
 // import { startGameLoop } from "./game.js";
-
-const JWT_SECRET = process.env.JWT_SECRET || "supersecret"; // Temporary, use env vars
-const ACCESS_TOKEN_TTL = "15m";
-const REFRESH_TOKEN_TTL = "7d";
-
-// Helpers for signing access and refresh Json Web Tokens
-function signAccessToken(user) {
-	return jwt.sign(
-		{ sub: user.id, username: user.username },
-		JWT_SECRET,
-		{ expiresIn: ACCESS_TOKEN_TTL }
-	);
-}
-
-function signRefreshToken(user) {
-	return jwt.sign(
-		{ sub: user.id, username: user.username, type: "refresh" },
-		JWT_SECRET,
-		{ expiresIn: REFRESH_TOKEN_TTL }
-	);
-}
-
-// Helpers for automated 2FA emails
-const transporter = nodemailer.createTransport({
-	host: process.env.SMTP_HOST,
-	port: 587,
-	secure: false,
-	auth: {
-		user: process.env.SMTP_USER,
-		pass: process.env.SMTP_PASS
-	}
-});
-
-async function sendOTPEmail(to, code) {
-	await transporter.sendMail({
-		from: '"ft_transcendence" <no-reply@transcendence.com>',
-		to,
-		subject: "Your one time 2FA code",
-		text: `Your 2FA Verification Code is: ${code}`
-	});
-}
 
 const fastify = Fastify({ logger: true });
 // const db = new sqlite3.Database('./database.sqlite');
@@ -158,119 +115,6 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
       return;
     }
   });
-});
-
-fastify.post("/api/register", (request, reply) => {
-	const { username, email, password } = request.body;
-
-	if (!username || !email || !password)
-		return reply.code(400).send({ error: "Missing fields" });
-
-	const salt = bcrypt.genSaltSync(15); // Salt Password
-	const hash = bcrypt.hashSync(password, salt); // Hash salted Password
-	db.run(
-		"INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
-		[username, email, hash],
-		function (err) {
-			if (err) {
-				if (err.message.includes("UNIQUE")) {
-					return reply
-					.code(400)
-					.send({ error: "Username or email already taken" });
-				}
-				return reply.code(500).send({ error: err.message });
-			}
-			reply.send({ id: this.lastID, username, email });
-		}
-	);
-});
-
-fastify.post("/api/login", (request, reply) => {
-	const { username, password } = request.body;
-
-	if (!username || !password)
-		return reply.code(400).send({ error: "Missing fields" });
-
-	db.get(
-		"SELECT * FROM users WHERE username = ?",
-		[username],
-		(err, user) => {
-			if (err)
-				return reply.code(500).send({ error: err.message });
-			if (!user)
-				return reply.code(400).send({ error: "Invalid credentials" });
-			// Authenticate password
-			const isValid = bcrypt.compareSync(password, user.password_hash);
-			if (!isValid)
-				return reply.code(400).send({ error: "Invalid credentials" });
-			
-			// Gegenerate 2FA code and store in DB
-			const OTPcode = Math.floor(100000 + Math.random() * 900000).toString();
-			const expiresAt = Date.now() + 5 * 60 * 100; // 5 mins from now
-			db.run("UPDATE users SET otp_code = ?, otp_expires = ? WHERE id = ?", [OTPcode, expiresAt, user.id]);
-			// Send 2FA Email with code
-			try {
-				sendOTPEmail(user.email, OTPcode);
-			} catch (e) {
-				console.error(`Failed to end email to ${user.email}`, e);
-				return reply.code(500).send({ error: "Failed to send OTP" });
-			}
-			// Issue temporary JWT
-			const tempToken = jwt.sign(
-				{ sub: user.id, stage: "mfa" },
-				JWT_SECRET,
-				{ expiresIn: "5m" }
-			);
-			// ALWAYS require 2FA!
-			reply.send({ mfa_required: true, tempToken });
-		}
-	);
-});
-
-// Two Factor Athentication
-fastify.post("/api/verify-2fa", (request, reply) => {
-	const { code, tempToken } = request.body;
-	if (!code || !tempToken) {
-		return reply.code(400).send({ error: "Missing fields" });
-	}
-
-	let payload;
-	try {
-		payload = jwt.verify(tempToken, JWT_SECRET);
-	} catch (e) {
-		return reply.code(401).send({ error: "Invalid or expired token" });
-	}
-
-	db.get(
-		"SELECT * FROM users WHERE id = ?",
-		[payload.sub],
-		(err, user) => {
-			if (err)
-				return reply.code(500).send({ error: err.message });
-			if (!user)
-				return reply.code(400).send({ error: "User not found" });
-			// Compare input code with stored 2FA code and clear from DB once verified
-			if (user.otp_code !== code || Date.now() > user.otp_expires) {
-				return reply.code(400).send({ error: "Invalid or expired 2FA code" });
-			}
-			db.run("UPDATE users SET otp_code = NULL, otp_expires = NULL WHERE id = ?", [user.id]);
-			// Issue proper JWT and create session cookie
-			const accessToken = signAccessToken(user);
-			const refreshToken = signRefreshToken(user);
-			reply.setCookie("refreshToken", refreshToken, {
-				httpOnly: true,
-				sameSite: "lax",
-				secure: true,
-				path: "/",
-				maxAge: 7 * 24 * 3600
-			});
-
-			reply.send({
-				accessToken,
-				user: { id: user.id, username: user.username, email: user.email }
-			});
-		}
-	);
 });
 
 // Start the Fastify server on port 3000 hosting on all interfaces

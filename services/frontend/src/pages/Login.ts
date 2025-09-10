@@ -1,9 +1,8 @@
 import { navigate } from "../router/router.js";
-type ApiUser = { id: number; username?: string; name?: string }; // name??? is it used?
+type ApiUser = { id: number; username?: string; email?: string };
 
 export class UserManager {
 	private currentUser: ApiUser | null = null;
-	private accessToken: string | null = null;
 
 	async register(username: string, email: string, password: string): Promise<boolean> {
 		const res = await fetch(`https://${location.host}/api/register`, {
@@ -12,13 +11,7 @@ export class UserManager {
 			body: JSON.stringify({ username, email, password }),
 			credentials: "include"
 		});
-		if (!res.ok) return false;
-		const data = await res.json();
-		this.accessToken = data.accessToken ?? null;
-		this.currentUser = data.user;
-		localStorage.setItem("userId", String(data.user.id));
-		localStorage.setItem("userName", data.user.username ?? data.user.name ?? username);
-		return true;
+		return res.ok;
 	}
 
 	async login(username: string, password: string): Promise<boolean> {
@@ -29,51 +22,46 @@ export class UserManager {
 			credentials: "include"
 		});
 		if (!res.ok) return false;
-
 		const data  = await res.json();
-		if (!data.mfa_required || !data.tempToken) return false;
-		sessionStorage.setItem("temp_token", data.tempToken);
-		return true;
+		return !!(data.mfa_required || data.tempToken);
 	}
 
 	async verify2FA(code: string): Promise<boolean> {
-		const tempToken = sessionStorage.getItem("temp_token");
-		if (!tempToken) return false;
-
 		const res = await fetch(`https://${location.host}/api/verify-2fa`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ code, tempToken }),
+			body: JSON.stringify({ code, tempToken }), // Supposedly automatically send by browser, if I understand correctly.
 			credentials: "include"
 		});
 		if (!res.ok) return false;
-
 		const data = await res.json();
-		this.accessToken = data.accessToken;
 		this.currentUser = data.user;
-		localStorage.setItem("userId", String(data.userID));
-		localStorage.setItem("userName", data.username ?? data.user.name ?? "");
-		sessionStorage.removeItem("temp_token");
 		return true;
+	}
+
+	async loadUser(): Promise<ApiUser | null> {
+		const res = await fetch(`https://${location.host}/api/me`, {
+			credentials: "include"
+		});
+		if (!res.ok) {
+			this.currentUser = null;
+			return null;
+		}
+		const user = await res.json();
+		this.currentUser = user;
+		return user;
+	}
+
+	async logout() {
+		await fetch(`https://${location.host}/api/logout`, {
+			method: "POST",
+			credentials: "include"
+		});
+		this.currentUser = null;
 	}
 
 	getUser() {
 		return this.currentUser;
-	}
-
-	getAccessToken() {
-		return this.accessToken;
-	}
-
-	logout() {
-		this.currentUser = null;
-		this.accessToken = null;
-		localStorage.removeItem("userId");
-		localStorage.removeItem("userName");
-		fetch(`https://${location.host}/api/logout`, {
-			method: "POST",
-			credentials: "include"
-		});
 	}
 }
 
