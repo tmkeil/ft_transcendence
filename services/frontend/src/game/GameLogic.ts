@@ -53,7 +53,7 @@ export class GameLogic {
 		// LOCAL/AI: Use direct Babylon.js object manipulation
 		console.log(this.scene.ball.speed);
 		const p1 = this.settings.getOpponent() === 'AI'
-			? this.paddleLogic.aiPaddleControl(this.scene.paddle1, this.settings.getOpponent())
+			? this.paddleLogic.dualPaddleControl(this.scene.paddle1)
 			: this.paddleLogic.playerPaddleControl(this.scene.paddle1);
 
 		const p2 = this.settings.getOpponent() === 'AI'
@@ -187,7 +187,7 @@ export class GameLogic {
 			return;
 
 		//	Set shake values
-		const shakeMagnitude = (force * 0.04) + Math.random() * force * 0.02;
+		const shakeMagnitude = (force * 0.02) + Math.random() * force * 0.01;
 		const shakeDuration = 500;	//in milliseconds
 		const startTime = performance.now();
 

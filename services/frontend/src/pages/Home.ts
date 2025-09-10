@@ -19,6 +19,7 @@ export const HomeController = (root: HTMLElement) => {
   const aiBtn = root.querySelector<HTMLButtonElement>("#aiOpponentButton")!;
   const localBtn = root.querySelector<HTMLButtonElement>("#localOpponentButton")!;
   const remoteBtn = root.querySelector<HTMLButtonElement>("#remoteOpponentButton")!;
+  const tournamentBtn = root.querySelector<HTMLButtonElement>("#tournamentButton")!;
 
   // Game
   const settings = new Settings();
@@ -134,6 +135,15 @@ export const HomeController = (root: HTMLElement) => {
     settings.setOpponent('REMOTE');
     game.getInputHandler().setRemote(true);
   };
+  
+  const onTournament = () => {
+    console.log("Entered Tournament Mode");
+    settings.setOpponent('REMOTE');
+    ws.send({ type: "joinTournament", userId });
+    game.getInputHandler().setRemote(true);
+  };
+
+
 
   // Add event listeners to the buttons
   sendBtn.addEventListener("click", onSend);
@@ -144,8 +154,11 @@ export const HomeController = (root: HTMLElement) => {
   aiBtn.addEventListener("click", onAI);
   localBtn.addEventListener("click", onLocal);
   remoteBtn.addEventListener("click", onRemote);
+  tournamentBtn.addEventListener("click", onTournament);
   window.addEventListener("beforeunload", onLeave, { once: true });
   window.addEventListener("unload", onLeave, { once: true });
+
+
 
   // Cleanup function to remove event listeners when navigating away from the page
   return () => {
@@ -159,6 +172,8 @@ export const HomeController = (root: HTMLElement) => {
     stopBtn.removeEventListener("click", onStop);
     aiBtn.removeEventListener("click", onAI);
     localBtn.removeEventListener("click", onLocal);
+    remoteBtn.removeEventListener("click", onRemote);
+    tournamentBtn.removeEventListener("click", onTournament);
 
     window.removeEventListener("beforeunload", onLeave);
     window.removeEventListener("unload", onLeave);

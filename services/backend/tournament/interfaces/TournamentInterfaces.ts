@@ -1,6 +1,4 @@
-export class Room {
-  // Assuming a basic Room class for the example
-}
+import { Room } from "../../gameRooms.js";
 
 export interface Player {
   id: number;
