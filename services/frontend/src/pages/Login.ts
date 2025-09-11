@@ -14,23 +14,26 @@ export class UserManager {
 		return res.ok;
 	}
 
-	async login(username: string, password: string): Promise<boolean> {
+	async login(username: string, password: string): Promise<string | null> {
 		const res = await fetch(`https://${location.host}/api/login`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ username, password }),
 			credentials: "include"
 		});
-		if (!res.ok) return false;
+		if (!res.ok) return null;
 		const data  = await res.json();
-		return !!(data.mfa_required || data.tempToken);
+		if (data.mfa_required && data.tempToken) {
+			return data.tempToken;
+		}
+		return null;
 	}
 
-	async verify2FA(code: string): Promise<boolean> {
+	async verify2FA(code: string, tempToken: string): Promise<boolean> {
 		const res = await fetch(`https://${location.host}/api/verify-2fa`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ code, tempToken }), // Supposedly automatically send by browser, if I understand correctly.
+			body: JSON.stringify({ code, tempToken }),
 			credentials: "include"
 		});
 		if (!res.ok) return false;
@@ -52,6 +55,10 @@ export class UserManager {
 		return user;
 	}
 
+	getUser() {
+		return this.currentUser;
+	}
+
 	async logout() {
 		await fetch(`https://${location.host}/api/logout`, {
 			method: "POST",
@@ -59,82 +66,78 @@ export class UserManager {
 		});
 		this.currentUser = null;
 	}
-
-	getUser() {
-		return this.currentUser;
-	}
 }
 
-
-class Login { // This class handles the whole user login and registration process
-
-	private isLogin = true;
-
+class Login {
 	constructor(private root: HTMLElement, private userManager: UserManager) {}
-	// Constructor takes the UserManager as a parameter
 
 	init() {
-		console.log("init login");
-		const accountButton = this.root.querySelector('#accountButton') as HTMLButtonElement;
-		const accountModal = this.root.querySelector('#accountModal') as HTMLDivElement;
-		const closeModal = this.root.querySelector('#closeModal') as HTMLButtonElement;
-		const modalTitle = this.root.querySelector('#modalTitle') as HTMLHeadingElement;
-		const accountForm = this.root.querySelector('#accountForm') as HTMLFormElement;
-		const loginBtn = this.root.querySelector('#loginBtn') as HTMLButtonElement;
-		const switchToRegister = this.root.querySelector('#switchToRegister') as HTMLButtonElement;
-		const modalError = this.root.querySelector('#modalError') as HTMLDivElement;
+		const loginForm = this.root.querySelector('#loginForm') as HTMLFormElement;
+		const loginError = this.root.querySelector('#loginError') as HTMLParagraphElement;
 
-		const setMode = (login: boolean) => {
-			this.isLogin = login;
-			modalTitle.textContent = login ? 'Login' : 'Register';
-			loginBtn.textContent = login ? 'Login' : 'Register';
-			modalError.textContent = '';
-		};
+		const registerForm = this.root.querySelector('#registerForm') as HTMLFormElement;
+		const registerError = this.root.querySelector('#registerError') as HTMLParagraphElement;
 
-
-		accountButton.addEventListener('click', () => {
-			accountModal.style.display = 'block';
-			setMode(true);
-		});
-
-		closeModal.addEventListener('click', () => {
-			accountModal.style.display = 'none';
-		});
-
-		switchToRegister.addEventListener('click', () => {
-			setMode(!this.isLogin);
-		});
-
-		accountForm.addEventListener('submit', async (event) => {
+		// Login flow
+		loginForm.addEventListener('submit', async (event) => {
 			event.preventDefault();
-			const usernamel = this.root.querySelector('#modalUsername') as HTMLInputElement;
-			const passwordl = this.root.querySelector('#modalPassword') as HTMLInputElement;
+			const username = (this.root.querySelector('#loginUsername') as HTMLInputElement).value.trim();
+			const password = (this.root.querySelector('#loginPassword') as HTMLInputElement).value.trim();
 
-			const username = usernamel.value.trim();
-			const password = passwordl.value.trim();
 			if (!username || !password) {
-				modalError.textContent = 'Username and password are required.';
+				loginError.textContent = 'Username and password are required.';
 				return;
 			}
+
 			try {
-				const step1 = await this.userManager.login(username, password);
-				if (!step1) {
-					modalError.textContent = "Invalid username or password.";
+				const tempToken = await this.userManager.login(username, password);
+				if (!tempToken) {
+					loginError.textContent = 'Invalid username or password.';
 					return;
 				}
 
-				// Prompt for 2FA code every time
 				const code = prompt("Enter your 2FA code:");
-				if (code && await this.userManager.verify2FA(code)) {
-					accountModal.style.display = "none";
+				if (!code) {
+					loginError.textContent = "2FA code required.";
+					return;
+				}
+
+				const ok = await this.userManager.verify2FA(code, tempToken);
+				if (ok) {
 					alert("Login successful (with 2FA)!");
 					navigate("/");
 				} else {
-					modalError.textContent = "Invalid 2FA code.";
+					loginError.textContent = "Invalid 2FA code.";
 				}
 			} catch (err) {
 				console.error(err);
-				modalError.textContent = "Something went wrong.";
+				loginError.textContent = "Something went wrong.";
+			}
+		});
+
+		// Register flow
+		registerForm.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			const username = (this.root.querySelector('#registerUsername') as HTMLInputElement).value.trim();
+			const email = (this.root.querySelector('#registerEmail') as HTMLInputElement).value.trim();
+			const password = (this.root.querySelector('#registerPassword') as HTMLInputElement).value.trim();
+
+			if (!username || !email || !password) {
+				registerError.textContent = "All fields are required.";
+				return;
+			}
+
+			try {
+				const ok = await this.userManager.register(username, email, password);
+				if (ok) {
+					alert("Registration successful! Now log in.");
+					registerError.textContent = "";
+				} else {
+					registerError.textContent = "Registration failed. Username or email may already exist.";
+				}
+			} catch (err) {
+				console.error(err);
+				registerError.textContent = "Something went wrong.";
 			}
 		});
 	}

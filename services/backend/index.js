@@ -7,6 +7,11 @@ import { getOrCreateRoom, rooms } from "./gameRooms.js";
 import { initDb } from "./initDatabases.js";
 import { broadcaster } from "./utils.js";
 import { buildWorld, movePaddles, moveBall } from "@app/shared";
+import fastifyCookie from "@fastify/cookie";
+import bcrypt from "bcryptjs";			// Password encryption
+import jwt from "jsonwebtoken";			// JWT session tokens
+import qrcode from "qrcode";			// QR code gen for autheticator app
+import { authenticator } from "otplib";	// Authenticator App functionality
 // import * as Shared from "@app/shared";
 // or import specific identifiers, e.g.:
 // import { Config } from "@app/shared";
@@ -116,6 +121,159 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
     }
   });
 });
+
+
+// SECURITY SHIT
+
+const JWT_SECRET = process.env.JWT_SECRET || "supersecret"; // Temporary, use env vars
+const ACCESS_TOKEN_TTL = "15m";
+
+// Helpers for signing access and refresh Json Web Tokens
+function signAccessToken(user) {
+	return jwt.sign(
+		{ sub: user.id, username: user.username },
+		JWT_SECRET,
+		{ expiresIn: ACCESS_TOKEN_TTL }
+	);
+}
+
+await fastify.register(fastifyCookie);
+
+fastify.post("/api/register", (request, reply) => {
+	const { username, email, password } = request.body;
+
+	if (!username || !email || !password)
+		return reply.code(400).send({ error: "Missing fields" });
+
+	const salt = bcrypt.genSaltSync(15); // Salt Password
+	const hash = bcrypt.hashSync(password, salt); // Hash salted Password
+	const secret = authenticator.generateSecret(); // Create unique key for authenticator app (2FA)
+	db.run(
+		"INSERT INTO users (username, email, password_hash, totp_secret) VALUES (?, ?, ?, ?)",
+		[username, email, hash, secret],
+		function (err) {
+			if (err) {
+				if (err.message.includes("UNIQUE")) {
+					return reply
+					.code(400)
+					.send({ error: "Username or email already taken" });
+				}
+				return reply.code(500).send({ error: err.message });
+			}
+			reply.send({ id: this.lastID, username, email });
+		}
+	);
+});
+
+fastify.post("/api/login", (request, reply) => {
+	const { username, password } = request.body;
+
+	if (!username || !password)
+		return reply.code(400).send({ error: "Missing fields" });
+
+	db.get(
+		"SELECT * FROM users WHERE username = ?",
+		[username],
+		(err, user) => {
+			if (err)
+				return reply.code(500).send({ error: err.message });
+			if (!user)
+				return reply.code(400).send({ error: "Invalid credentials" });
+			// Authenticate password
+			const isValid = bcrypt.compareSync(password, user.password_hash);
+			if (!isValid)
+				return reply.code(400).send({ error: "Invalid credentials" });
+
+			// Issue temporary JWT
+			const tempToken = jwt.sign(
+				{ sub: user.id, stage: "mfa" },
+				JWT_SECRET,
+				{ expiresIn: "5m" }
+			);
+			// ALWAYS require 2FA!
+			reply.send({ mfa_required: true, tempToken });
+		}
+	);
+});
+
+fastify.post("/api/verify-2fa", (request, reply) => {
+	const { code, tempToken } = request.body;
+	if (!code || !tempToken) {
+		return reply.code(400).send({ error: "Missing fields" });
+	}
+
+	let payload;
+	try {
+		payload = jwt.verify(tempToken, JWT_SECRET);
+	} catch (e) {
+		return reply.code(401).send({ error: "Invalid or expired token" });
+	}
+	db.get(
+		"SELECT * FROM users WHERE id = ?",
+		[payload.sub],
+		(err, user) => {
+			if (err)
+				return reply.code(500).send({ error: err.message });
+			if (!user)
+				return reply.code(400).send({ error: "User not found" });
+
+			// Compare input code with currently generated code by Autheticator App
+			if (!authenticator.check(code, user.totp_secret)) {
+				return reply.code(400).send({ error: "Invalid or expired 2FA code" });
+			}
+
+			// Issue proper JWT and create session cookie (HttpOnly)
+			const accessToken = signAccessToken(user);
+			reply.setCookie("auth", accessToken, {
+				httpOnly: true,
+				sameSite: "lax",
+				secure: true,
+				path: "/",
+				maxAge: 15 * 60,
+			});
+
+			reply.send({ user: { id: user.id, username: user.username, email: user.email } });
+		}
+	);
+});
+
+fastify.get("/api/2fa-setup", (req, reply) => {
+	const userId = req.query.userId;
+	db.get(
+		"SELECT * FROM users WHERE id = ?",
+		[userId],
+		async (err, user) => {
+			if (err)
+				return reply.code(500).send({ error: err.message });
+			if (!user)
+				return reply.code(400).send({ error: "User not found" });
+			const otpauth = authenticator.keyuri(user.username, "MyApp", user.totp_secret);
+			const qr = await qrcode.toDataURL(otpauth);
+			reply.send({ qr });
+		}
+	);
+});
+
+fastify.get("/api/me", (request, reply) => {
+	try {
+		const token = request.cookies?.auth;
+		const payload = jwt.verify(token, JWT_SECRET);
+		reply.send({ id: payload.sub, username: payload.username });
+	} catch {
+		reply.code(401).send({ error: "Not Authenticated" });
+	}
+});
+
+fastify.post("/api/logout", (request, reply) => {
+	// Stuff
+	reply.clearCookie("auth", { path: "/" });
+	reply.send({ ok: true });
+});
+
+
+
+
+
 
 // Start the Fastify server on port 3000 hosting on all interfaces
 fastify.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
