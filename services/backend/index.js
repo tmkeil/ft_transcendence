@@ -8,6 +8,8 @@ import { initDb } from "./initDatabases.js";
 import { broadcaster } from "./utils.js";
 import { buildWorld, movePaddles, moveBall } from "@app/shared";
 import tournamentRoutes from "./tournament/managers/TournamentRoutes.js";
+import { TournamentManager } from './tournament/managers/TournamentManager.js';
+
 // import * as Shared from "@app/shared";
 // or import specific identifiers, e.g.:
 // import { Config } from "@app/shared";
@@ -19,6 +21,7 @@ fastify.register(tournamentRoutes);
 // const db = new sqlite3.Database('./database.sqlite');
 // Initialize SQLite database in the data folder
 const db = new sqlite3.Database("./data/database.sqlite");
+let tournaments = {};
 
 // Register CORS and WebSocket plugins
 await fastify.register(cors, {
@@ -59,9 +62,9 @@ const clients = new Set();
 // This get endpoint will be used to establish a websocket connection
 // New sockets/connections are added to the clients set (at the moment)
 // Later this should be moved to a more sophisticated user management system where new users are registered and authenticated
-fastify.get("/ws", { websocket: true }, (connection, req) => {
-	const ws = connection.socket;
-	clients.add(ws);
+  fastify.get("/ws", { websocket: true }, (connection, req) => {
+    const ws = connection.socket;
+    clients.add(ws);
 
 	// When a client disconnects, remove it from the clients set
 	ws.on("close", () => {
@@ -71,91 +74,82 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 
   // When (on the server side) a message is received from a client, parse it and store it in the db and broadcast it to the others
   ws.on("message", (message) => {
+    let parsed;
     try {
-      const parsed = JSON.parse(message);
-      const { type } = parsed;
-      console.log(`parsed message: ${JSON.stringify(parsed)}. Type: ${type}`);
-
-      if (type === "chat") {
-        const { userId, content } = parsed;
-        db.run("INSERT INTO messages (userId, content) VALUES (?, ?)", [
-          userId,
-          content,
-        ]);
-        // Send the message, which the client sent to all connected clients
-        broadcaster(clients, ws, JSON.stringify({ type: 'chat', userId: userId, content: content }));
-
-      } else if (type === "join") {
-        // Join a game room
-        const { userId } = parsed;
-        const room = getOrCreateRoom();
-        if (room.players.has(ws)) return;
-        room.addPlayer(userId, ws);
-        // Response to the client, which side the player is on and the current state to render the initial game state
-        ws.send(JSON.stringify({ type: "join", roomId: room.id, side: ws._side, gameConfig: room.config, state: room.state }));
-
-      } else if (type === "leave") {
-        const { userId } = parsed;
-        // console.log(`player id: ${userId} wants to leave the channel: ${roomId}`);
-        const index = rooms.findIndex(room => room.id === ws._roomId);
-        const room = rooms[index];
-        ws._roomId = null;
-        if (!room || !room.players.has(ws)) return;
-        if (room.loopInterval) {
-          clearInterval(room.loopInterval);
-          room.loopInterval = null;
-        }
-        room.state.started = false;
-        ws.send(JSON.stringify({ type: "chat", userId: -1, content: `Left room ${ws._roomId}.` }));
-        broadcaster(room.players.keys(), ws, JSON.stringify({ type: "chat", userId: userId, content: `User ${userId} left room ${ws._roomId}` }));
-        broadcaster(room.players.keys(), null, JSON.stringify({ type: "reset" }));
-        room.removePlayer(ws);
-        if (room.players.size === 0) {
-          const index = rooms.findIndex(room => room.id === ws._roomId);
-          rooms.splice(index, 1);
-          // rooms.delete(ws._roomId);
-        }
-        try {
-          ws.close();
-        } catch {}
-
-      } else if (type === "ready") {
-        const {userId} = parsed;
-        console.log("In ready1");
-        console.log("ws._roomId:", ws._roomId);
-        const index = rooms.findIndex(room => room.id === ws._roomId);
-        const room = rooms[index];
-        // If the player is already ready
-        console.log("Room found: ", room);
-        if (room.getPlayer(ws).ready) return;
-        console.log("Player is not ready yet");
-        room.getPlayer(ws).ready = true;
-        console.log("In ready2");
-        startLoop(room);
-        console.log("In ready3");
-        console.log(`Sending ready state of user ${userId} to all players in room ${room.id}`);
-        broadcaster(room.players.keys(), null, JSON.stringify({ type: "ready", userId: userId }));
-        console.log(`Message sent to all players in room ${room.id} that user ${userId} is ready`);
-
-      } else if (type === "input") {
-        console.log("Backend: Received input from client:", parsed);
-        const { direction } = parsed;
-        const index = rooms.findIndex(room => room.id === ws._roomId);
-        const room = rooms[index];
-        if (!room || !room.state.started) return;
-
-        if (ws._side === "left")  room.inputs.left  = direction;
-        else if (ws._side === "right") room.inputs.right = direction;
-
-      } else if (type === "teardown") {
-        // console.log("Teardown message from client:", parsed);
-      }
+      // Convert Buffer to string before parsing
+      const str = message.toString();
+      parsed = JSON.parse(str);
     } catch (e) {
-      console.error("Invalid JSON received:", message);
+      console.error("Invalid JSON received:", message.toString());
       return;
+    }
+
+    const { type } = parsed;
+    console.log(`parsed message: ${JSON.stringify(parsed)}. Type: ${type}`);
+
+    if (type === "chat") {
+      const { userId, content } = parsed;
+      db.run("INSERT INTO messages (userId, content) VALUES (?, ?)", [userId, content]);
+      broadcaster(clients, ws, JSON.stringify({ type: 'chat', userId, content }));
+
+    } else if (type === "join") {
+      const { userId } = parsed;
+      const room = getOrCreateRoom();
+      if (room.players.has(ws)) return;
+      room.addPlayer(userId, ws);
+      ws.send(JSON.stringify({ type: "join", roomId: room.id, side: ws._side, gameConfig: room.config, state: room.state }));
+
+    } else if (type === "leave") {
+      const { userId } = parsed;
+      const index = rooms.findIndex(room => room.id === ws._roomId);
+      const room = rooms[index];
+      ws._roomId = null;
+      if (!room || !room.players.has(ws)) return;
+      if (room.loopInterval) clearInterval(room.loopInterval);
+      room.state.started = false;
+      ws.send(JSON.stringify({ type: "chat", userId: -1, content: `Left room ${ws._roomId}.` }));
+      broadcaster(room.players.keys(), ws, JSON.stringify({ type: "chat", userId, content: `User ${userId} left room ${ws._roomId}` }));
+      broadcaster(room.players.keys(), null, JSON.stringify({ type: "reset" }));
+      room.removePlayer(ws);
+      if (room.players.size === 0) rooms.splice(index, 1);
+      try { ws.close(); } catch {}
+
+    } else if (type === "ready") {
+      const { userId } = parsed;
+      const index = rooms.findIndex(room => room.id === ws._roomId);
+      const room = rooms[index];
+      if (!room || room.getPlayer(ws).ready) return;
+      room.getPlayer(ws).ready = true;
+      startLoop(room);
+      broadcaster(room.players.keys(), null, JSON.stringify({ type: "ready", userId }));
+
+    } else if (type === "input") {
+      const { direction } = parsed;
+      const index = rooms.findIndex(room => room.id === ws._roomId);
+      const room = rooms[index];
+      if (!room || !room.state.started) return;
+      if (ws._side === "left") room.inputs.left = direction;
+      else if (ws._side === "right") room.inputs.right = direction;
+
+    } else if (type === "joinTournament") {
+      const { userId } = parsed;
+
+      let manager = Object.values(tournaments).find(
+        (t) => t.getTournament().status === "pending" && t.getTournament().players.length < 4
+      );
+
+      if (!manager) {
+        manager = new TournamentManager();
+        tournaments[manager.getTournament().id] = manager;
+      }
+
+      manager.addPlayer({ id: userId }, ws);
+      // Broadcast tournament update to everyone
+      broadcastTournament();
     }
   });
 });
+
 
 fastify.post("/api/register", (request, reply) => {
 	const { username, email, password } = request.body;

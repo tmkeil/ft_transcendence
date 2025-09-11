@@ -68,5 +68,3 @@ export function getOrCreateRoom() {
   }
   return room;
 }
-
-// const room = rooms.get(ws._roomId);

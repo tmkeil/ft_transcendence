@@ -17,7 +17,7 @@ export class TournamentManager {
     this.matchCounter = 0;
   }
 
-  addPlayer(player) {
+  addPlayer(player, ws) {
     if (this.tournament.players.find((p) => p.id === player.id)) {
       throw new Error("Player already joined this tournament");
     }
@@ -26,12 +26,11 @@ export class TournamentManager {
       throw new Error("Tournament is already full");
     }
 
-    this.tournament.players.push(player);
-
-    // If tournament is now full → start it
+    this.tournament.players.push({ ...player, ws });
     if (this.tournament.players.length === this.tournament.size) {
       this.startTournament();
     }
+    this.broadcastTournament();
   }
 
   startTournament() {
@@ -50,11 +49,27 @@ export class TournamentManager {
   createMatch(p1, p2, round) {
     const room = new Room();
     rooms.push(room);
+
+    // Add both players into the room
+    room.addPlayer(p1.id, p1.ws);
+    room.addPlayer(p2.id, p2.ws);
+
+    // Tell each player they joined
+    for (const [ws, player] of room.players) {
+      ws.send(JSON.stringify({
+        type: "join",
+        roomId: room.id,
+        side: player.side,
+        gameConfig: room.config,
+        state: room.state,
+      }));
+    }
+
     return {
       id: this.matchCounter++,
       round,
       time: Date.now(),
-      room: room,
+      room,
       p1,
       p2,
       winner: null,
@@ -67,21 +82,53 @@ export class TournamentManager {
     return this.tournament;
   }
 
+
+  broadcastTournament() {
+    const tournament = this.getTournament();
+    
+    // Remove anything non-serializable
+    const stateToSend = {
+      id: tournament.id,
+      status: tournament.status,
+      round: tournament.round,
+      players: tournament.players.map(p => ({
+        id: p.id,
+        username: p.username,
+        score: p.score || 0,
+        ready: p.ready || false
+      }))
+    };
+
+    for (const player of tournament.players) {
+      if (player.ws && player.ws.readyState === 1) {
+        player.ws.send(JSON.stringify({
+          type: "tournamentUpdate",
+          state: stateToSend
+        }));
+      }
+    }
+  }
+
+
+
   recordMatchResult(matchId, winnerId) {
-    const match = this.tournament.matches.find((m) => m.id === matchId);
+    const match = this.tournament.matches.find((m) => m.id == matchId);
     if (!match) throw new Error("Match not found");
-    if (match.status === "completed")
-      throw new Error("Match already completed");
 
-    if (match.p1?.id !== winnerId && match.p2?.id !== winnerId)
-      throw new Error("Invalid winner");
-
-    match.winner = match.p1?.id === winnerId ? match.p1 : match.p2;
-    match.loser = match.p1?.id === winnerId ? match.p2 : match.p1;
+    // same as before...
+    match.winner = match.p1.id === winnerId ? match.p1 : match.p2;
+    match.loser = match.p1.id === winnerId ? match.p2 : match.p1;
     match.status = "completed";
+
+    // stop room loop
+    if (match.room.loopInterval) {
+      clearInterval(match.room.loopInterval);
+      match.room.loopInterval = null;
+    }
 
     this.tournament.waitingArea.push(match.winner);
     this.checkRoundReady();
+    this.broadcastTournament();
   }
 
   checkRoundReady() {
@@ -114,5 +161,6 @@ export class TournamentManager {
 
     this.tournament.matches.push(...newMatches);
     this.tournament.round++;
+    this.broadcastTournament();
   }
 }

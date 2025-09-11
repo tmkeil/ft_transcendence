@@ -71,6 +71,11 @@ export const HomeController = (root: HTMLElement) => {
     appendLog('Game started!');
   });
 
+  ws.on("tournamentUpdate", (m: { type: "tournamentUpdate"; state: any }) => {
+    console.log("Tournament state:", m.state);
+  });
+
+
   // Actions from this user like sending chat messages, joining a room, readying up
   // Send chat message to server
   const onSend = () => {
@@ -138,6 +143,7 @@ export const HomeController = (root: HTMLElement) => {
   
   const onTournament = () => {
     console.log("Entered Tournament Mode");
+    appendLog("Entered Tournament Mode");
     settings.setOpponent('REMOTE');
     ws.send({ type: "joinTournament", userId });
     game.getInputHandler().setRemote(true);
