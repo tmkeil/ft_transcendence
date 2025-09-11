@@ -132,20 +132,26 @@ const clients = new Set();
       else if (ws._side === "right") room.inputs.right = direction;
 
     } else if (type === "joinTournament") {
-      const { userId } = parsed;
+      try {
+        const { userId } = parsed;
 
-      let manager = Object.values(tournaments).find(
-        (t) => t.getTournament().status === "pending" && t.getTournament().players.length < 4
-      );
+        let manager = Object.values(tournaments).find(
+          (t) => t.getTournament().status === "pending" && t.getTournament().players.length < 4
+        );
 
-      if (!manager) {
-        manager = new TournamentManager();
-        tournaments[manager.getTournament().id] = manager;
+        if (!manager) {
+          manager = new TournamentManager();
+          tournaments[manager.getTournament().id] = manager;
+        }
+
+        manager.addPlayer({ id: userId }, ws);
+      } catch (err) {
+        console.error("Failed to join tournament:", err.message);
+        ws.send(JSON.stringify({
+          type: "error",
+          message: err.message
+        }));
       }
-
-      manager.addPlayer({ id: userId }, ws);
-      // Broadcast tournament update to everyone
-      broadcastTournament();
     }
   });
 });
@@ -267,4 +273,37 @@ export function loop(room) {
   // broadcast the new state to the players
   broadcaster(room.players.keys(), null, JSON.stringify({ type: "state", state: room.state }));
   // console.log("Broadcasted state:", room.state);
+
+  // Check for win condition: first to 5
+  if (room.state.scoreL >= 5 || room.state.scoreR >= 5) {
+    clearInterval(room.loopInterval); // stop the game loop
+    room.state.started = false;
+
+    const winnerSide = room.state.scoreL >= 5 ? "left" : "right";
+    const loserSide = winnerSide === "left" ? "right" : "left";
+
+    const winner = [...room.players.values()].find(p => p.ws._side === winnerSide);
+    const loser = [...room.players.values()].find(p => p.ws._side === loserSide);
+
+    // Notify players
+    broadcaster(room.players.keys(), null, JSON.stringify({
+      type: "matchOver",
+      winnerId: winner.userId,
+      loserId: loser.userId
+    }));
+
+    if (room.matchId && room.tournamentManager) {
+      room.tournamentManager.recordMatchResult(room.matchId, winner.userId);
+    }
+
+    // Eject loser from tournament
+    if (loser && loser.ws.readyState === 1) {
+      loser.ws.send(JSON.stringify({
+        type: "tournamentEliminated",
+        message: "You lost and are out of the tournament"
+      }));
+      try { loser.ws.close(); } catch {}
+    }
+  }
+
 }
