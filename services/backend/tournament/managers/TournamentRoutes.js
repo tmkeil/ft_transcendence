@@ -17,7 +17,7 @@ export default async function tournamentRoutes(fastify) {
       tournaments[manager.getTournament().id] = manager;
     }
 
-    manager.addPlayer(player);
+    manager.addPlayer(player, null);
     return manager.getTournament();
   });
 

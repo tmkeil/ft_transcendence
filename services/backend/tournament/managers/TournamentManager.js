@@ -100,11 +100,23 @@ export class TournamentManager {
     };
 
     for (const player of tournament.players) {
-      if (player.ws && player.ws.readyState === 1) {
-        player.ws.send(JSON.stringify({
-          type: "tournamentUpdate",
-          state: stateToSend
-        }));
+      try
+      {
+        if (player.ws && player.ws.readyState === 1)
+        {
+          player.ws.send(JSON.stringify({
+            type: "tournamentUpdate",
+            state: stateToSend
+          }));
+        }
+        else
+        {
+          console.warn(`Skipping player ${player.id}, socket not ready`);
+        }
+      }
+      catch (err)
+      {
+        console.error(`Failed to send tournamentUpdate to player ${player.id}:`, err);
       }
     }
   }
