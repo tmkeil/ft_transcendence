@@ -1,3 +1,7 @@
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 /* Global Styles */
 /* * {
 	box-sizing: border-box;
@@ -82,49 +86,9 @@ form {
 } */
 
 
+/* OLD RAW CSS (HOME PAGE) */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* 
 body {
   font-size: 1.5rem;
   color: #eee;
@@ -198,8 +162,7 @@ body {
   background: #3fbf7f;
   border-color: #3fbf7f;
 }
-
-/* Center main */
+  
 .main-content {
   display: flex;
   flex-direction: column;
@@ -286,6 +249,7 @@ button {
   border-color: #3fbf7f;
   color: #fff;
 }
+*/
 
 /* Auth page specific styles — append to your main CSS */
 .auth-container {

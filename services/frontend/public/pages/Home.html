@@ -1,69 +1,48 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Quantico:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../styles.css">
-  <title>Transcendence</title>
-</head>
-<body> -->
-
-    <!-- Dashboard (Everything is hardcoded for looks) -->
-    <div class="dashboard">
-      <h3>My Dashboard</h3>
-      <div class="profile">
-	  	<!-- Dynamically load currentUser info -->
-        <div class="profile-pic"></div>
-        <div class="profile-info">
-          <p>KixiK</p>
-          <p>level 4</p>
-        </div>
-      </div>
-      <div class="stats">
-        <p>Stats:</p>
-		<!-- Dynamically load stats for the currentUser -->
-        <p>Wins - 10</p>
-        <p>Loses - 7</p>
-        <p>Tournaments Won - 0</p>
-      </div>
-      <button class="logout">Log Out</button>
+<div class="home-content flex flex-row flex-grow">
+<div class="dashboard bg-gray-800 border-2 border-gray-300 p-10 flex flex-col w-[300px]">
+  <h3 class="text-2xl font-bold mb-4 text-white">My Dashboard</h3>
+  <div class="profile flex items-center mb-4">
+    <div class="profile-pic w-24 h-24 border-2 border-gray-300 rounded-full mr-2 bg-gray-700"></div>
+    <div class="profile-info text-white">
+      <p>[user: username]</p>
+      <p class="text-sm text-gray-400">level [user: level]</p>
     </div>
+  </div>
+  <div class="stats mt-4 flex-grow text-white">
+    <p class="font-semibold">Stats:</p>
+    <p>Wins - [user: wins]</p>
+    <p>Loses - [user: loses]</p>
+    <p>Tournaments Won - [user: t_wins]</p>
+  </div>
+  <button class="logout text-2xl mt-4 px-6 py-2 bg-gray-700 border-2 border-gray-300 text-white rounded hover:bg-green-400 hover:border-green-400 hover:text-white transition">Log Out</button>
+</div>
 
-    <!-- Main -->
-    <div class="main-content">
-      <div class="main-title">TRANSCENDENCE</div>
-      <div class="menu">
-        <button data-tooltip="Play against a friend locally on the same keyboard.">LOCAL 1v1</button>
-        <button data-tooltip="Challenge another player online.">ONLINE 1v1</button>
-        <button data-tooltip="Compete in a knockout-style tournament.">TOURNAMENT MODE</button>
-        <button data-tooltip="Practice against an AI opponent.">SINGLEPLAYER AI MODE</button>
-      </div>
-      <div class="tooltip"></div>
+<div class="main-content flex flex-col items-center justify-center p-5 flex-grow">
+  <div class="main-title text-8xl font-bold mb-5 text-green-400">TRANSCENDENCE</div>
+  <div class="menu flex flex-col">
+    <button class="my-2 px-8 py-2 text-3xl border-2 border-gray-300 bg-gray-700 text-white rounded hover:bg-green-400 hover:border-green-400 hover:text-white transition">LOCAL 1v1</button>
+    <button class="my-2 px-8 py-2 text-3xl border-2 border-gray-300 bg-gray-700 text-white rounded hover:bg-green-400 hover:border-green-400 hover:text-white transition">ONLINE 1v1</button>
+    <button class="my-2 px-8 py-2 text-3xl border-2 border-gray-300 bg-gray-700 text-white rounded hover:bg-green-400 hover:border-green-400 hover:text-white transition">TOURNAMENT MODE</button>
+    <button class="my-2 px-8 py-2 text-3xl border-2 border-gray-300 bg-gray-700 text-white rounded hover:bg-green-400 hover:border-green-400 hover:text-white transition">SINGLEPLAYER AI MODE</button>
+  </div>
+  <div class="tooltip mt-5 text-xl text-gray-400 min-h-[40px]"> </div>
+</div>
+
+<div class="sidebar bg-gray-800 border-2 border-gray-300 p-10 flex flex-col w-[300px]">
+  <div class="notifications flex justify-between items-center border-2 border-gray-300 p-2 mb-5 bg-gray-700">
+    <span class="text-white">Invites / Requests</span>
+    <div class="notif-icon relative">
+      ✉️
+      <div class="notif-dot absolute top-[-3px] right-[-3px] w-[6px] h-[6px] bg-red-500 rounded-full"></div>
     </div>
-
-    <!-- Friends (Everything is hardcoded for looks) -->
-    <div class="sidebar">
-      <div class="notifications">
-        <span>Invites / Requests</span>
-        <div class="notif-icon">
-          ✉️
-          <div class="notif-dot"></div>
-        </div>
-      </div>
-
-      <div class="friends">
-        <h4>Friends</h4>
-		<!-- Dynamically load currentUser's friends -->
-        <p><span>cimex</span><span>chat</span></p>
-        <p><span>tobias</span><span>chat</span></p>
-        <p><span>betul</span><span>chat</span></p>
-        <p><span>mafalda</span><span>chat</span></p>
-      </div>
-
-      <button class="user-dashboard-btn">User Dashboard</button>
-    </div>
-<!-- </body>
-<script src="../scripts/tooltips.js"></script>
-</html> -->
+  </div>
+  <div class="friends mt-4 flex-grow">
+    <h4 class="text-lg font-bold text-white">Friends</h4>
+    <p class="flex justify-between my-1 text-white"><span>[user: friends: 0]</span><span>chat</span></p>
+    <p class="flex justify-between my-1 text-white"><span>[user: friends: 1]</span><span>chat</span></p>
+    <p class="flex justify-between my-1 text-white"><span>[user: friends: 2]</span><span>chat</span></p>
+    <p class="flex justify-between my-1 text-white"><span>...</span><span>...</span></p>
+  </div>
+  <button class="user-dashboard-btn text-2xl mt-4 px-6 py-2 bg-gray-700 border-2 border-gray-300 text-white rounded hover:bg-green-400 hover:border-green-400 hover:text-white transition">User Dashboard</button>
+</div>
+</div>
