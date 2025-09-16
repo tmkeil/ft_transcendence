@@ -3,7 +3,8 @@ import sqlite3 from "sqlite3";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import { getOrCreateRoom, rooms } from "./gameRooms.js";
-import { initDb, fetchAll, addElementToTable, removeElementFromTable } from "./initDatabases.js";
+import { initDb } from "./initDatabases.js";
+import { fetchAll, updateRowInTable, addRowToTable, removeRowFromTable } from "./DatabaseUtils.js";
 import { broadcaster } from "./utils.js";
 import { buildWorld, movePaddles, moveBall } from "@app/shared";
 import fastifyCookie from "@fastify/cookie";
@@ -39,9 +40,10 @@ await fastify.register(fastifyCookie);
 // Call the initDb function to create the tables by the time the server starts
 initDb(db);
 
+// Get all users (without password_hash and totp_secret) from the db
 fastify.get("/api/users", async (request, reply) => {
   let params = [];
-  const fields = "id, username, wins, losses, level, created_at, status, friends, blocks";
+  const fields = "id, username, wins, losses, level, created_at, status";
   let sql = `SELECT ${fields} FROM users ORDER BY created_at DESC`;
   try {
     const rows = await fetchAll(db, sql, params);
@@ -52,16 +54,64 @@ fastify.get("/api/users", async (request, reply) => {
   }
 });
 
+// Get the friend requests for a user by userId from the db
+fastify.get("/api/users/:id/friendRequests", async (request, reply) => {
+  const userId = parseInt(request.params.id);
+  if (!userId) {
+    return reply.code(400).send({ error: "Invalid user ID" });
+  }
+  try {
+    const rows = await fetchAll(db, `SELECT * FROM friend_requests WHERE receiver_id = ?`, [userId]);
+    console.log("Fetched friend requests: ", rows);
+    // If there are no rows, return an empty array
+    if (!rows) return reply.send([]);
+    reply.send(rows);
+  } catch (err) {
+    reply.code(500).send({ error: err.message });
+  }
+});
+
+// Get the friends for a user by userId from the db
+fastify.get("/api/users/:id/friends", async (request, reply) => {
+  const userId = parseInt(request.params.id);
+  if (!userId) {
+    return reply.code(400).send({ error: "Invalid user ID" });
+  }
+  try {
+    const rows = await fetchAll(db, `SELECT * FROM friends WHERE user_id = ?`, [userId]);
+    console.log("Fetched friends: ", rows);
+    if (!rows) return reply.send([]);
+    reply.send(rows);
+  } catch (err) {
+    reply.code(500).send({ error: err.message });
+  }
+});
+
+// Get the blocks for a user by userId from the db
+fastify.get("/api/users/:id/blocks", async (request, reply) => {
+  const userId = parseInt(request.params.id);
+  if (!userId) {
+    return reply.code(400).send({ error: "Invalid user ID" });
+  }
+  try {
+    const rows = await fetchAll(db, `SELECT * FROM blocks WHERE user_id = ?`, [userId]);
+    console.log("Fetched blocks: ", rows);
+    if (!rows) return reply.send([]);
+    reply.send(rows);
+  } catch (err) {
+    reply.code(500).send({ error: err.message });
+  }
+});
+
 // This will send a friend request to another user
 fastify.post("/api/users/:id/sendFriendRequest", async (request, reply) => {
-  // Extract userId from the URL parameters
+  // Extract userId (the user which is sending the friend request) from the URL parameters
   const userId = parseInt(request.params.id);
-  // Extract friendId from the request body
+  // Extract friendId (where the request should go to) from the request body
   const {friendId} = request.body;
   if (!friendId || !userId) {
     return reply.code(400).send({ error: "Invalid user ID or friend ID" });
   }
-  
 });
 
 fastify.post("/api/users/:id/unfriend", async (request, reply) => {
@@ -72,7 +122,7 @@ fastify.post("/api/users/:id/unfriend", async (request, reply) => {
   }
   console.log("Unfriending user: ", friendId, "for user: ", userId);
   try {
-    await removeElementFromTable(db, "friends", userId, friendId);
+    await removeRowFromTable(db, "friends", "user_id, friend_id", `${userId}, ${friendId}`);
     reply.send({ success: true });
   } catch (err) {
     reply.code(500).send({ error: err.message });
@@ -88,7 +138,7 @@ fastify.post("/api/users/:id/block", async (request, reply) => {
   }
   console.log("Blocking user: ", blockId, "for user: ", userId);
   try {
-    await addElementToTable(db, "blocks", userId, blockId);
+    await addRowToTable(db, "blocks", "user_id, blocked_user_id", `${userId}, ${blockId}`);
     reply.send({ success: true });
   } catch (err) {
     reply.code(500).send({ error: err.message });
@@ -103,48 +153,80 @@ fastify.post("/api/users/:id/unblock", async (request, reply) => {
   }
   console.log("Unblocking user: ", unblockId, "for user: ", userId);
   try {
-    await removeElementFromTable(db, "blocks", userId, unblockId);
+    await removeRowFromTable(db, "blocks", "user_id, blocked_user_id", `${userId}, ${unblockId}`);
     reply.send({ success: true });
   } catch (err) {
     reply.code(500).send({ error: err.message });
   }
 });
 
-// WebSocket Set
-const clients = new Set();
+// WebSocket map of clientIds to websockets
+const clients = new Map();
 
+export const getUserIdFromRequest = (req) => {
+  try {
+    const token = req.cookies?.auth;
+    if (!token) throw new Error("No token");
+    const payload = fastify.jwt.verify(token);
+    const userId = payload.sub;
+    if (!userId) throw new Error("No userId in token payload");
+    return userId;
+  } catch (error) {
+    console.error("Error getting userId from request:", error);
+    return -1;
+  }
+}
 // This get endpoint will be used to establish a websocket connection
-// New sockets/connections are added to the clients set (at the moment)
+// New sockets/connections are added to the clients map (at the moment)
 // Later this should be moved to a more sophisticated user management system where new users are registered and authenticated
 fastify.get("/ws", { websocket: true }, (connection, req) => {
-	const ws = connection.socket;
-	clients.add(ws);
+  // Getting the userId from the JWT token in the cookie
+  const userId = getUserIdFromRequest(req);
+  if (userId === -1) {
+    connection.socket.close();
+    return;
+  }
 
-	// When a client disconnects, remove it from the clients set
+  // Get the websocket from the connection request
+  const ws = connection.socket;
+  // Add the new connection to the clients map of clientIds to websockets
+  let set = clients.get(userId);
+  if (!set) {
+    set = new Set();
+    clients.set(userId, set);
+  }
+  // If the websocket is already in the set, it is simply ignored and not added to the set again
+  set.add(ws);
+
+	// When a client disconnects, remove it
 	ws.on("close", () => {
     console.log("Client disconnected in backend");
-		clients.delete(ws);
+    // Remove the websocket from the set of websockets for this userId
+		set.delete(ws);
+    // If the set is empty, remove the userId from the clients map
+    if (set.size === 0) clients.delete(userId);
 	});
 
   // When (on the server side) a message is received from a client, parse it and store it in the db and broadcast it to the others
-  ws.on("message", (message) => {
+  ws.on("message", async (message) => {
     try {
+      // Parse the incoming message
+      // {"type":"chat","content":"Hello World"}
+      // {"type":"join","userId":1}
+      // {"type":"leave","userId":1,"roomId":"room-123"}
+      // {"type":"ready","userId":1}
       const parsed = JSON.parse(message);
       const { type } = parsed;
       console.log(`parsed message: ${JSON.stringify(parsed)}. Type: ${type}`);
 
       if (type === "chat") {
-        const { userId, content } = parsed;
-        db.run("INSERT INTO messages (userId, content) VALUES (?, ?)", [
-          userId,
-          content,
-        ]);
+        const { content } = parsed;
+        await addRowToTable(db, "messages", "userId, content", `${userId}, '${content}'`);
         // Send the message, which the client sent to all connected clients
         broadcaster(clients, ws, JSON.stringify({ type: 'chat', userId: userId, content: content }));
 
       } else if (type === "join") {
         // Join a game room
-        const { userId } = parsed;
         const room = getOrCreateRoom();
         if (room.players.has(ws)) return;
         room.addPlayer(userId, ws);
@@ -152,7 +234,6 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
         ws.send(JSON.stringify({ type: "join", roomId: room.id, side: ws._side, gameConfig: room.config, state: room.state }));
 
       } else if (type === "leave") {
-        const { userId } = parsed;
         // console.log(`player id: ${userId} wants to leave the channel: ${roomId}`);
         const index = rooms.findIndex(room => room.id === ws._roomId);
         const room = rooms[index];
