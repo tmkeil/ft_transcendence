@@ -16,6 +16,8 @@ export function initDb(db) {
 			status TEXT DEFAULT 'ok',
 			friends TEXT DEFAULT '',
 			blocks TEXT DEFAULT ''
+			totp_secret TEXT UNIQUE,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 			)
 		`);
 		// Create messages table with id <INTEGER PRIMARY KEY>, userId <INTEGER>, content <TEXT>, timestamp <DATETIME DEFAULT CURRENT_TIMESTAMP>

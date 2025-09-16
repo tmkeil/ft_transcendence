@@ -9,12 +9,14 @@
     "preview": "vite preview --host 0.0.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
     "@types/babylonjs": "^2.4.5",
+    "typescript": "^5.0.0",
     "vite": "^5.4.0"
   },
   "dependencies": {
+    "@app/shared": "*",
+    "@tailwindcss/vite": "^4.1.13",
     "babylonjs": "^8.18.0",
-    "@app/shared": "*"
+    "tailwindcss": "^4.1.13"
   }
 }

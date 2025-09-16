@@ -2,11 +2,15 @@ import Fastify from "fastify";
 import sqlite3 from "sqlite3";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
-import bcrypt from "bcryptjs";
 import { getOrCreateRoom, rooms } from "./gameRooms.js";
 import { initDb, fetchAll, addElementToTable, removeElementFromTable } from "./initDatabases.js";
 import { broadcaster } from "./utils.js";
 import { buildWorld, movePaddles, moveBall } from "@app/shared";
+import fastifyCookie from "@fastify/cookie";
+import fastifyJWT from "@fastify/jwt";
+import bcrypt from "bcryptjs";			// Password encryption
+import qrcode from "qrcode";			// QR code gen for autheticator app
+import { authenticator } from "otplib";	// Authenticator App functionality
 // import * as Shared from "@app/shared";
 // or import specific identifiers, e.g.:
 // import { Config } from "@app/shared";
@@ -20,9 +24,18 @@ const db = new sqlite3.Database("./data/database.sqlite");
 
 // Register CORS and WebSocket plugins
 await fastify.register(cors, {
-	origin: true,
+	origin: "https://localhost:8443",
+	credentials: true,
 });
+
 await fastify.register(websocket);
+
+await fastify.register(fastifyJWT, {
+  secret: process.env.JWT_SECRET || "supersecret"
+})
+
+await fastify.register(fastifyCookie);
+
 // Call the initDb function to create the tables by the time the server starts
 initDb(db);
 
@@ -204,15 +217,15 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 fastify.post("/api/register", (request, reply) => {
 	const { username, email, password } = request.body;
 
-	if (!username || !email || !password) {
+	if (!username || !email || !password)
 		return reply.code(400).send({ error: "Missing fields" });
-	}
 
-	const salt = bcrypt.genSaltSync(15);
-	const hash = bcrypt.hashSync(password, salt);
+	const salt = bcrypt.genSaltSync(15); // Salt Password
+	const hash = bcrypt.hashSync(password, salt); // Hash salted Password
+	const secret = authenticator.generateSecret(); // Create unique key for authenticator app (2FA)
 	db.run(
-		"INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
-		[username, email, hash],
+		"INSERT INTO users (username, email, password_hash, totp_secret) VALUES (?, ?, ?, ?)",
+		[username, email, hash, secret],
 		function (err) {
 			if (err) {
 				if (err.message.includes("UNIQUE")) {
@@ -230,39 +243,114 @@ fastify.post("/api/register", (request, reply) => {
 fastify.post("/api/login", (request, reply) => {
 	const { username, password } = request.body;
 
-	if (!username || !password) {
+	if (!username || !password)
 		return reply.code(400).send({ error: "Missing fields" });
-	}
 
 	db.get(
 		"SELECT * FROM users WHERE username = ?",
 		[username],
 		(err, user) => {
-			if (err) {
+			if (err)
 				return reply.code(500).send({ error: err.message });
-			}
-			if (!user) {
+			if (!user)
 				return reply.code(400).send({ error: "Invalid credentials" });
-			}
-
+			// Authenticate password
 			const isValid = bcrypt.compareSync(password, user.password_hash);
-			if (!isValid) {
+			if (!isValid)
 				return reply.code(400).send({ error: "Invalid credentials" });
-			}
 
-			// We just return user info. In a real app, use sessions or JWTs.
-			reply.send({ id: user.id, username: user.username, email: user.email });
+			// Issue temporary JWT
+			const tempToken = fastify.jwt.sign(
+				{ sub: user.id, stage: "mfa" },
+				{ expiresIn: "5m" }
+			);
+			// ALWAYS require 2FA!
+			reply.send({ mfa_required: true, tempToken });
 		}
 	);
 });
 
-// Start the Fastify server on port 3000 hosting on all interfaces
-fastify.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
-	if (err) {
-		fastify.log.error(err);
-		process.exit(1);
+fastify.post("/api/verify-2fa", (request, reply) => {
+	const { code, tempToken } = request.body;
+	if (!code || !tempToken) {
+		return reply.code(400).send({ error: "Missing fields" });
 	}
-	fastify.log.info("Backend running on port 3000");
+
+	let payload;
+	try {
+		payload = fastify.jwt.verify(tempToken);
+	} catch (e) {
+		return reply.code(401).send({ error: "Invalid or expired token" });
+	}
+	db.get(
+		"SELECT * FROM users WHERE id = ?",
+		[payload.sub],
+		(err, user) => {
+			if (err)
+				return reply.code(500).send({ error: err.message });
+			if (!user)
+				return reply.code(400).send({ error: "User not found" });
+
+			// Compare input code with currently generated code by Autheticator App
+			if (!authenticator.check(code, user.totp_secret)) {
+				return reply.code(400).send({ error: "Invalid or expired 2FA code" });
+			}
+
+			// Issue proper JWT and create session cookie (HttpOnly)
+			const accessToken = fastify.jwt.sign(
+				{ sub: user.id, username: user.username },
+				{ expiresIn: "15m" }
+			);
+			reply.setCookie("auth", accessToken, {
+				httpOnly: true,
+				sameSite: "lax",
+				secure: true,
+				path: "/",
+				maxAge: 15 * 60,
+			});
+
+			reply.send({ user: { id: user.id, username: user.username, email: user.email } });
+		}
+	);
+});
+
+fastify.get("/api/2fa-setup", (req, reply) => {
+	const userId = req.query.userId;
+	db.get(
+		"SELECT * FROM users WHERE id = ?",
+		[userId],
+		async (err, user) => {
+			if (err)
+				return reply.code(500).send({ error: err.message });
+			if (!user)
+				return reply.code(400).send({ error: "User not found" });
+			const otpauth = authenticator.keyuri(user.username, "MyApp", user.totp_secret);
+			const qr = await qrcode.toDataURL(otpauth);
+			reply.send({ qr });
+		}
+	);
+});
+
+fastify.get("/api/me", (request, reply) => {
+	console.log("Received /api/me request");
+	try {
+		const token = request.cookies?.auth;
+		console.log("Token from cookies:", token);
+		if (!token) throw new Error("No token");
+		// Verify and decode the token
+		const payload = fastify.jwt.verify(token);
+		console.log("Token payload:", payload);
+		reply.send({ id: payload.sub });
+		console.log("User authenticated:", payload.username);
+	} catch {
+		console.log("User not authenticated");
+		reply.code(401).send({ error: "Not Authenticated" });
+	}
+});
+
+fastify.post("/api/logout", (reply) => {
+	reply.clearCookie("auth", { path: "/" });
+	reply.send({ ok: true });
 });
 
 export function startLoop(room) {
@@ -317,3 +405,12 @@ export function loop(room) {
   broadcaster(room.players.keys(), null, JSON.stringify({ type: "state", state: room.state }));
   // console.log("Broadcasted state:", room.state);
 }
+
+// Start the Fastify server on port 3000 hosting on all interfaces
+fastify.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
+	if (err) {
+		fastify.log.error(err);
+		process.exit(1);
+	}
+	fastify.log.info("Backend running on port 3000");
+});

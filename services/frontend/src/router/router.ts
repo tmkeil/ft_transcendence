@@ -15,11 +15,14 @@ const routes: Record<string, Route> = {
 let teardown: () => void = () => {};
 
 // If the user is authenticated (has a userId in localStorage)
-const isAuthed = () => {
-  if (localStorage.getItem("userId")) {
-    return true;
-  }
-  return false;
+const isAuthed = async () => {
+  console.log("Checking authentication status...");
+  const res = await fetch(`https://${location.host}/api/me`, {
+    method: "GET",
+    credentials: "include",
+  });
+  console.log("Authentication status response:", res);
+  return res.ok;
 };
 
 // This updates the browser's history and loads the new page content.
@@ -36,6 +39,7 @@ export function navigate(path: string): void {
 // After adding the data-link via navigate, the window.history.pathname is the new URL and
 // the main-page div will be updated with the new content.
 async function handleLocation(): Promise<void> {
+    console.log("Handling location:", location.pathname);
     let path = location.pathname;
     let route = routes[path] || routes["/404"];
 
@@ -45,7 +49,8 @@ async function handleLocation(): Promise<void> {
     nav.style.display = noNav.includes(path) ? "none" : "block";
 
     // Route protection/guard. Redirect to login if not authenticated
-    if (route.auth && !isAuthed()) {
+    if (route.auth && !(await isAuthed())) {
+        console.log("User not authenticated, redirecting to /login");
         history.replaceState({}, "", "/login");
         path = "/login";
         route = routes["/login"];
