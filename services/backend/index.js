@@ -324,7 +324,7 @@ fastify.get("/api/2fa-setup", (req, reply) => {
 				return reply.code(500).send({ error: err.message });
 			if (!user)
 				return reply.code(400).send({ error: "User not found" });
-			const otpauth = authenticator.keyuri(user.username, "MyApp", user.totp_secret);
+			const otpauth = authenticator.keyuri(user.username, "Trancsendence", user.totp_secret);
 			const qr = await qrcode.toDataURL(otpauth);
 			reply.send({ qr });
 		}

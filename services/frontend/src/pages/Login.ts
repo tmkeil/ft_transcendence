@@ -178,19 +178,10 @@ class Login {
 	}
 }
 
-<<<<<<< HEAD
 export const mountLogin = (root: HTMLElement) => {
   const userManager = new UserManager();
   new Login(root, userManager).init();
   return () => {
     userManager.logout();
   };
-=======
-export function mountLogin(root: HTMLElement): () => void {
-	const userManager = new UserManager();
-	new Login(root, userManager).init();
-	return () => {
-		userManager.logout();
-	};
->>>>>>> sessions-JWT-feature
 }

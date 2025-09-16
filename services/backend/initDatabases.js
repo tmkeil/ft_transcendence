@@ -9,14 +9,13 @@ export function initDb(db) {
 			username TEXT UNIQUE NOT NULL,
 			email TEXT UNIQUE NOT NULL,
 			password_hash TEXT NOT NULL,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			totp_secret TEXT UNIQUE,
 			wins INTEGER DEFAULT 0,
 			losses INTEGER DEFAULT 0,
 			level INTEGER DEFAULT 1,
 			status TEXT DEFAULT 'ok',
 			friends TEXT DEFAULT '',
-			blocks TEXT DEFAULT ''
-			totp_secret TEXT UNIQUE,
+			blocks TEXT DEFAULT '',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 			)
 		`);
