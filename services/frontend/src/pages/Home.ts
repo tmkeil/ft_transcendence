@@ -98,11 +98,11 @@ export const HomeController = (root: HTMLElement) => {
 
   // Leave a game room and send it to the server
   const onLeave = () => {
-    try {
+    /*try {
       ws.send({ type: "leave", userId: userId });
     } catch {
       ws.close();
-    }
+    }*/
   };
 
   // Ready up and send it to the server

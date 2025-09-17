@@ -248,11 +248,11 @@ export function stopRoom(room, roomId) {
   }
 
   // Remove from global rooms array (use passed roomId or room.id)
-  const idToRemove = roomId ?? (room && room.id);
+  /*const idToRemove = roomId ?? (room && room.id);
   if (typeof idToRemove !== "undefined") {
     const index = rooms.findIndex(r => r.id === idToRemove);
     if (index !== -1) rooms.splice(index, 1);
-  }
+  }*/
 }
 
 // This function is called every 33ms to update the game state based on the current state and player input.
@@ -281,35 +281,42 @@ export function loop(room) {
 
   // Check for win condition: first to 5
   if (room.state.scoreL >= 5 || room.state.scoreR >= 5) {
-    clearInterval(room.loopInterval); // stop the game loop
+    clearInterval(room.loopInterval);
     room.state.started = false;
 
-    const winnerSide = room.state.scoreL >= 5 ? "left" : "right";
-    const loserSide = winnerSide === "left" ? "right" : "left";
+    // Find winner and loser entries (socket + player)
+    const winnerEntry = [...room.players.entries()].find(
+      ([sock, player]) => sock._side === (room.state.scoreL >= 5 ? "left" : "right")
+    );
+    const loserEntry = [...room.players.entries()].find(
+      ([sock, player]) => sock._side === (winnerSide === "left" ? "right" : "left")
+    );
 
-    const winner = [...room.players.values()].find(p => p.ws._side === winnerSide);
-    const loser = [...room.players.values()].find(p => p.ws._side === loserSide);
+    const winner = winnerEntry?.[1];
+    const loserSock = loserEntry?.[0];
+    const loser = loserEntry?.[1];
 
-    // Notify players
-    broadcaster(room.players.keys(), null, JSON.stringify({
-      type: "matchOver",
-      winnerId: winner.userId,
-      loserId: loser.userId
-    }));
+    if (winner && loser) {
+      broadcaster(room.players.keys(), null, JSON.stringify({
+        type: "matchOver",
+        winnerId: winner.userId,
+        loserId: loser.userId
+      }));
 
-    if (room.matchId && room.tournamentManager) {
-      room.tournamentManager.recordMatchResult(room.matchId, winner.userId);
-    }
+      if (room.tournamentManager && room.matchId !== undefined) {
+        room.tournamentManager.recordMatchResult(room.matchId, winner.userId);
+      }
 
-    // Eject loser from tournament
-    if (loser && loser.ws && loser.ws.readyState === 1) {
-      try {
-        loser.ws.send(JSON.stringify({
-          type: "tournamentEliminated",
-          message: "You lost and are out of the tournament"
-        }));
-      } catch (err) {
-        console.warn("Failed to notify eliminated player:", err?.message || err);
+      // Eject loser from tournament
+      if (loserSock && loserSock.readyState === 1) {
+        try {
+          loserSock.send(JSON.stringify({
+            type: "tournamentEliminated",
+            message: "You lost and are out of the tournament"
+          }));
+        } catch (err) {
+          console.warn("Failed to notify eliminated player:", err?.message || err);
+        }
       }
     }
   }

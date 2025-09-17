@@ -1,8 +1,19 @@
-export function broadcaster(clients, ws, msg) {
-  // console.log("Broadcasting message to all clients: ", msg);
-  for (const client of clients) {
-    if (client !== ws && client.readyState === 1) {
-      client.send(msg);
+export function broadcaster(clients, ws, msg)
+{
+  console.log("Broadcasting message to all clients: ", msg);
+  
+  for (const client of clients)
+  {
+    if (!client)
+      continue;
+    try
+    {
+      if (client !== ws && client.readyState === 1)
+        client.send(msg);
+    }
+    catch
+    {
+      console.warn("Failed to braodcast message to client!");
     }
   }
 }
