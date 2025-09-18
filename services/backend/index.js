@@ -138,6 +138,7 @@ fastify.post("/api/users/:id/block", async (request, reply) => {
   }
   console.log("Blocking user: ", blockId, "for user: ", userId);
   try {
+    console.log("Before adding row to blocks table");
     await addRowToTable(db, "blocks", "user_id, blocked_user_id", `${userId}, ${blockId}`);
     reply.send({ success: true });
   } catch (err) {

@@ -15,6 +15,20 @@ type UsersData = {
   status: "ok" | "friend" | "blocked";
 };
 
+type FriendsType = {
+  id: number;
+  user_id: number;
+  friend_id: number;
+  created_at: string;
+};
+
+type BlocksType = {
+  id: number;
+  user_id: number;
+  blocked_user_id: number;
+  created_at: string;
+};
+
 const getUsers = async () => {
   const response = await fetch("/api/users");
   if (!response.ok) {
@@ -56,23 +70,32 @@ const getUsers = async () => {
     console.error("Failed to fetch blocks:", blocksRes.statusText);
     return [];
   }
-  const friends = await friendsRes.json();
-  const blocks = await blocksRes.json();
+  console.log("Friends response.json():", await friendsRes.clone().json());
+  console.log("Blocks response.json():", await blocksRes.clone().json());
+  const friendIds = (await friendsRes.json()).map((f: FriendsType) => f.friend_id);
+  const blockIds = (await blocksRes.json()).map((b: BlocksType) => b.blocked_user_id);
+  console.log("First index of blockId: ", blockIds[0]);
+  console.log("Friends:", friendIds);
+  console.log("Blocks:", blockIds);
   for (const user of users) {
     // If the user is myself, set status to "ok"
     if (user.id === myUserId) {
+      console.log("This is my user:", user.id);
       user.status = "ok";
     }
     // If the user is in my blocks list, set status to "blocked"
-    else if (blocks.has(String(user.id))) {
+    else if (blockIds.includes(user.id)) {
+      console.log("User is blocked:", user.id);
       user.status = "blocked";
     }
     // If the user is in my friends list, set status to "friend"
-    else if (friends.has(String(user.id))) {
+    else if (friendIds.includes(user.id)) {
+      console.log("User is friend:", user.id);
       user.status = "friend";
     }
     // Otherwise, set status to "ok"
     else {
+      console.log("User is ok:", user.id);
       user.status = "ok";
     }
   }
