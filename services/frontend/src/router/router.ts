@@ -67,7 +67,7 @@ async function handleLocation(): Promise<void> {
             const { HomeController } = await import("/src/pages/Home.js");
             // Call the HomeController to set up event listeners and manage the home page
             // Teardown function when navigating away from the home page, the return code from HomeController is called
-            teardown = HomeController(root);
+            teardown = await HomeController(root);
         } else if (path === "/login") {
             console.log("Loading login page");
             const { mountLogin } = await import("/src/pages/Login.js");

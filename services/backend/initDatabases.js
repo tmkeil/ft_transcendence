@@ -14,6 +14,7 @@ export function initDb(db) {
 			losses INTEGER DEFAULT 0,
 			level INTEGER DEFAULT 1,
 			status TEXT DEFAULT 'ok',
+			"2fa_enabled" TEXT DEFAULT 'false',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 			)
 		`);
@@ -26,17 +27,26 @@ export function initDb(db) {
 			FOREIGN KEY(userId) REFERENCES users(id)
 			)
 		`);
-		// Create settings table with id <INTEGER PRIMARY KEY>, key <TEXT UNIQUE>, value <TEXT>
-		db.run(
-			"CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, key TEXT UNIQUE, value TEXT)"
-		);
+		// Create settings table. Each user has its own settings like: 2FA enabled/disabled, ... (key-value pairs)
+		// As soon as we add a user, we need to add default settings for this user
+		// id: Id of the setting
+		// user_id: Id of the user
+		// UNIQUE(key): To make sure, that each setting is only once in the table
+		db.run(`CREATE TABLE IF NOT EXISTS settings (
+			id INTEGER PRIMARY KEY,
+			user_id INTEGER,
+			key TEXT NOT NULL,
+			value TEXT,
+			UNIQUE(key, user_id),
+			FOREIGN KEY(user_id) REFERENCES users(id)
+			)
+		`);
 
 		// Create a friend_requests table to store pending friend requests
 		db.run(`CREATE TABLE IF NOT EXISTS friend_requests (
 			id INTEGER PRIMARY KEY,
 			sender_id INTEGER,
 			receiver_id INTEGER,
-			status TEXT DEFAULT 'pending',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY(sender_id) REFERENCES users(id),
 			FOREIGN KEY(receiver_id) REFERENCES users(id)

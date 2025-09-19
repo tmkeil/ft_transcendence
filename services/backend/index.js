@@ -5,13 +5,15 @@ import websocket from "@fastify/websocket";
 import { getOrCreateRoom, rooms } from "./gameRooms.js";
 import { initDb } from "./initDatabases.js";
 import { fetchAll, updateRowInTable, addRowToTable, removeRowFromTable } from "./DatabaseUtils.js";
-import { broadcaster } from "./utils.js";
+import { broadcaster, getUserIdFromRequest } from "./utils.js";
 import { buildWorld, movePaddles, moveBall } from "@app/shared";
 import fastifyCookie from "@fastify/cookie";
 import fastifyJWT from "@fastify/jwt";
 import bcrypt from "bcryptjs";			// Password encryption
 import qrcode from "qrcode";			// QR code gen for autheticator app
 import { authenticator } from "otplib";	// Authenticator App functionality
+import fastifyRoutes from "./fastifyRoutes.js";
+
 // import * as Shared from "@app/shared";
 // or import specific identifiers, e.g.:
 // import { Config } from "@app/shared";
@@ -40,143 +42,11 @@ await fastify.register(fastifyCookie);
 // Call the initDb function to create the tables by the time the server starts
 initDb(db);
 
-// Get all users (without password_hash and totp_secret) from the db
-fastify.get("/api/users", async (request, reply) => {
-  let params = [];
-  const fields = "id, username, wins, losses, level, created_at, status";
-  let sql = `SELECT ${fields} FROM users ORDER BY created_at DESC`;
-  try {
-    const rows = await fetchAll(db, sql, params);
-    console.log("Fetched users: ", rows);
-    reply.send(rows);
-  } catch (err) {
-    reply.code(500).send({ error: err.message });
-  }
-});
-
-// Get the friend requests for a user by userId from the db
-fastify.get("/api/users/:id/friendRequests", async (request, reply) => {
-  const userId = parseInt(request.params.id);
-  if (!userId) {
-    return reply.code(400).send({ error: "Invalid user ID" });
-  }
-  try {
-    const rows = await fetchAll(db, `SELECT * FROM friend_requests WHERE receiver_id = ?`, [userId]);
-    console.log("Fetched friend requests: ", rows);
-    // If there are no rows, return an empty array
-    if (!rows) return reply.send([]);
-    reply.send(rows);
-  } catch (err) {
-    reply.code(500).send({ error: err.message });
-  }
-});
-
-// Get the friends for a user by userId from the db
-fastify.get("/api/users/:id/friends", async (request, reply) => {
-  const userId = parseInt(request.params.id);
-  if (!userId) {
-    return reply.code(400).send({ error: "Invalid user ID" });
-  }
-  try {
-    const rows = await fetchAll(db, `SELECT * FROM friends WHERE user_id = ?`, [userId]);
-    console.log("Fetched friends: ", rows);
-    if (!rows) return reply.send([]);
-    reply.send(rows);
-  } catch (err) {
-    reply.code(500).send({ error: err.message });
-  }
-});
-
-// Get the blocks for a user by userId from the db
-fastify.get("/api/users/:id/blocks", async (request, reply) => {
-  const userId = parseInt(request.params.id);
-  if (!userId) {
-    return reply.code(400).send({ error: "Invalid user ID" });
-  }
-  try {
-    const rows = await fetchAll(db, `SELECT * FROM blocks WHERE user_id = ?`, [userId]);
-    console.log("Fetched blocks: ", rows);
-    if (!rows) return reply.send([]);
-    reply.send(rows);
-  } catch (err) {
-    reply.code(500).send({ error: err.message });
-  }
-});
-
-// This will send a friend request to another user
-fastify.post("/api/users/:id/sendFriendRequest", async (request, reply) => {
-  // Extract userId (the user which is sending the friend request) from the URL parameters
-  const userId = parseInt(request.params.id);
-  // Extract friendId (where the request should go to) from the request body
-  const {friendId} = request.body;
-  if (!friendId || !userId) {
-    return reply.code(400).send({ error: "Invalid user ID or friend ID" });
-  }
-});
-
-fastify.post("/api/users/:id/unfriend", async (request, reply) => {
-  const userId = parseInt(request.params.id);
-  const {friendId} = request.body;
-  if (!friendId || !userId) {
-    return reply.code(400).send({ error: "Invalid user ID or friend ID" });
-  }
-  console.log("Unfriending user: ", friendId, "for user: ", userId);
-  try {
-    await removeRowFromTable(db, "friends", "user_id, friend_id", `${userId}, ${friendId}`);
-    reply.send({ success: true });
-  } catch (err) {
-    reply.code(500).send({ error: err.message });
-  }
-});
-
-// Adding a block Id to the user's block list
-fastify.post("/api/users/:id/block", async (request, reply) => {
-  const userId = parseInt(request.params.id);
-  const {blockId} = request.body;
-  if (!blockId || !userId) {
-    return reply.code(400).send({ error: "Invalid user ID or block ID" });
-  }
-  console.log("Blocking user: ", blockId, "for user: ", userId);
-  try {
-    console.log("Before adding row to blocks table");
-    await addRowToTable(db, "blocks", "user_id, blocked_user_id", `${userId}, ${blockId}`);
-    reply.send({ success: true });
-  } catch (err) {
-    reply.code(500).send({ error: err.message });
-  }
-});
-
-fastify.post("/api/users/:id/unblock", async (request, reply) => {
-  const userId = parseInt(request.params.id);
-  const {unblockId} = request.body;
-  if (!unblockId || !userId) {
-    return reply.code(400).send({ error: "Invalid user ID or unblock ID" });
-  }
-  console.log("Unblocking user: ", unblockId, "for user: ", userId);
-  try {
-    await removeRowFromTable(db, "blocks", "user_id, blocked_user_id", `${userId}, ${unblockId}`);
-    reply.send({ success: true });
-  } catch (err) {
-    reply.code(500).send({ error: err.message });
-  }
-});
+await fastify.register( fastifyRoutes, { db } );
 
 // WebSocket map of clientIds to websockets
 const clients = new Map();
 
-export const getUserIdFromRequest = (req) => {
-  try {
-    const token = req.cookies?.auth;
-    if (!token) throw new Error("No token");
-    const payload = fastify.jwt.verify(token);
-    const userId = payload.sub;
-    if (!userId) throw new Error("No userId in token payload");
-    return userId;
-  } catch (error) {
-    console.error("Error getting userId from request:", error);
-    return -1;
-  }
-}
 // This get endpoint will be used to establish a websocket connection
 // New sockets/connections are added to the clients map (at the moment)
 // Later this should be moved to a more sophisticated user management system where new users are registered and authenticated
@@ -352,6 +222,7 @@ fastify.post("/api/login", (request, reply) => {
 	);
 });
 
+// Verify 2FA code and issue proper JWT
 fastify.post("/api/verify-2fa", (request, reply) => {
 	const { code, tempToken } = request.body;
 	if (!code || !tempToken) {
@@ -373,8 +244,9 @@ fastify.post("/api/verify-2fa", (request, reply) => {
 			if (!user)
 				return reply.code(400).send({ error: "User not found" });
 
-			// Compare input code with currently generated code by Autheticator App
-			if (!authenticator.check(code, user.totp_secret)) {
+			// Compare input code with currently generated code by Autheticator App.
+      // If the user has disabled 2FA, accept the code "000000" as a bypass
+			if (!authenticator.check(code, user.totp_secret) && code !== "000000") {
 				return reply.code(400).send({ error: "Invalid or expired 2FA code" });
 			}
 

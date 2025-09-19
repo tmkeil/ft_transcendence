@@ -32,8 +32,11 @@ class WSClient {
 
   connect(userId: number) {
     // If this ws is already connected
-    if (this.connected && this.ws)
+    console.log("WSClient connecting with userId", userId);
+    if (this.connected && this.ws) {
+      console.warn("WSClient already connected");
       return;
+    }
     this.userId = userId;
 
     // Create a new WebSocket connection

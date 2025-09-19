@@ -105,7 +105,6 @@ class Login {
 		   });
 		});
 
-
 		// Login flow
 		loginForm.addEventListener('submit', async (event) => {
 			event.preventDefault();
@@ -124,6 +123,39 @@ class Login {
 					return;
 				}
 
+				// Extract the user ID from the tempToken
+				const userId = JSON.parse(atob(tempToken.split('.')[1])).sub;
+
+				// Get the 2fa_enabled status from the server:
+				const isEnabledResponse = await fetch(`/api/users/${userId}`, { credentials: "include" });
+				if (!isEnabledResponse.ok) {
+					loginError.textContent = "Failed to get user info.";
+					return;
+				}
+				const userData = await isEnabledResponse.json();
+				console.log("User data response:", userData);
+				if (!userData || !userData.id) {
+					loginError.textContent = "Invalid user data.";
+					return;
+				}
+
+				// If the user does not have 2FA enabled, log them in directly
+				const enabled = userData["2fa_enabled"];
+				if (enabled === "false") {
+					console.log("2FA not enabled, logging in directly.");
+					const ok = await this.userManager.verify2FA("000000", tempToken);
+					if (ok) {
+						alert("Login successful (with 2FA)!");
+						navigate("/");
+					} else {
+						loginError.textContent = "Invalid 2FA code.";
+					}
+					alert("Login successful!");
+					navigate("/");
+					return;
+				}
+
+				// If the user has 2FA enabled, prompt for the code
 				const code = prompt("Enter your 2FA code:");
 				if (!code) {
 					loginError.textContent = "2FA code required.";
