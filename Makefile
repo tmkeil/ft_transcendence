@@ -2,19 +2,25 @@
 
 UNAME_S := $(shell uname -s)
 
+build:
+	@echo "Building Services..."
+	docker compose up --build -d
+	docker ps -a
+
 up:
 	@echo "Starting Services..."
-	docker compose up --build -d
+	docker compose up -d
 	docker ps -a
 
 down:
 	@echo "Stopping and removing Services..."
 	docker compose down
-	rm -rf ./services/frontend/node_modules ./packages/shared/dist
+# rm -rf ./services/frontend/node_modules ./packages/shared/dist
 
 prune: down
 	@echo "Nuking all Services..."
 	docker system prune -af --volumes
+	rm -rf ./services/backend/data/database.sqlite
 
 re: down up
 

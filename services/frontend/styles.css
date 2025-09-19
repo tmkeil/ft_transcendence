@@ -1,45 +1,4 @@
-/* Global Styles */
-* {
-	box-sizing: border-box;
-}
-
-html, body {
-	height: 100%;
-}
-
-body {
-	margin: 0;
-	padding: 0;
-	background: linear-gradient(135deg, #b8f2e6, #ffa5b2);
-	min-height: 100%;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: flex-start;
-}
-
-/* Heading */
-h1 {
-	color: #ffa5b2;
-	font-family: 'Trebuchet MS', sans-serif;
-	font-size: 3em;
-	margin-bottom: 30px;
-	text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-/* Canvas Styling */
-#gameCanvas {
-	border: 8px solid #ffa5b2;
-	background-color: #ffffff;
-	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-	display: block;
-	margin: 0 auto 30px auto;
-	width: 1440px;
-	height: 816px;
-	max-width: 95vw;
-	max-height: 80vh;
-	border-radius: 12px;
-}
+@import "tailwindcss";
 
 /* Button Styling */
 #startBtn {
@@ -61,12 +20,12 @@ h1 {
 }
 
 /* Optional Score Section (if needed) */
-#Scores {
+/* #Scores {
 	margin-bottom: 20px;
 	font-family: 'Arial Rounded MT Bold', sans-serif;
 	font-size: 20px;
 	color: #4a4a4a;
-}
+} */
 
 #chat {
 	display: none;
@@ -76,7 +35,112 @@ h1 {
 #log {
 	width: 100%;
 }
-
+/* 
 form {
 	margin: 1rem 0;
+} */
+
+
+/* OLD RAW CSS (HOME PAGE) */
+
+body {
+  font-size: 1.5rem;
+  color: #eee;
+  font-family: "Quantico", sans-serif;
+
+  background: linear-gradient(180deg, #111 0%, #111 40%, #ad2648 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 12s ease infinite;
+
+  border: 2px solid #ccc;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
+
+@keyframes gradientShift {
+  0% { background-position: 50% 0%; }
+  50% { background-position: 50% 100%; }
+  100% { background-position: 50% 0%; }
+}
+
+/* Auth page specific styles — append to your main CSS 
+.auth-container {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: start;
+  box-sizing: border-box;
+  padding: 20px;
+}
+
+@media (min-width: 900px) {
+  .auth-container {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.auth-card {
+  background-color: #2a2a2a;
+  border: 2px solid #ccc;
+  padding: 28px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 280px;
+}
+
+.auth-title {
+  font-size: 3rem;
+  margin: 0 0 6px 0;
+  color: #3fbf7f;
+  letter-spacing: 0.5px;
+}
+
+.auth-form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  margin: 8px 0;
+  font-family: "Quantico", sans-serif;
+  font-size: 2rem;
+  background: #333;
+  color: #eee;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+  transition: 0.14s;
+}
+
+.auth-form input:focus {
+  box-shadow: 0 0 0 4px rgba(63,191,127,0.08);
+  border-color: #3fbf7f;
+}
+
+.auth-submit {
+  font-size: 2rem;
+  padding: 8px 22px;
+  margin-top: 8px;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.auth-error {
+  color: #f66;
+  font-size: 1.6rem;
+  min-height: 2.2rem;
+  margin-top: 6px;
+}
+
+.auth-form input::placeholder {
+  color: #aaa;
+}
+*/

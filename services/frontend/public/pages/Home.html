@@ -1,25 +1,60 @@
-<h1>Transcendence Pong</h1>
-<canvas id="gameCanvas"></canvas>
+<div class="home-content flex flex-row flex-grow">
+	<div class="dashboard bg-gray-800 border-2 border-gray-300 p-10 flex flex-col w-[300px]">
+		<h3 class="text-2xl font-bold mb-4 text-white">My Dashboard</h3>
+		<div class="profile flex items-center mb-4">
+			<div class="profile-pic w-24 h-24 border-2 border-gray-300 rounded-full mr-2 bg-gray-700"></div>
+			<div class="profile-info text-white">
+			<p>[user: username]</p>
+			<p class="text-sm text-gray-400">level [user: level]</p>
+			<button id="settingsBtn" class="mt-2 px-4 py-1 bg-gray-700 border-2 border-gray-300 text-white rounded hover:bg-teal-400 hover:border-teal-400 transition">Settings</button>
+			</div>
+		</div>
+		<div class="stats mt-4 flex-grow text-white">
+			<p class="font-semibold">Stats:</p>
+			<p>Wins - [user: wins]</p>
+			<p>Loses - [user: loses]</p>
+			<p>Tournaments Won - [user: t_wins]</p>
+		</div>
+		<button class="logout text-2xl mt-4 px-6 py-2 bg-gray-700 border-2 border-gray-300 text-white rounded hover:bg-teal-400 hover:border-teal-400 hover:text-white transition">Log Out</button>
+	</div>
 
-<div id="gameControls">
-  <button id="startBtn">Start Game</button>
-  <button id="stopBtn">Stop Game</button>
-</div>
+	<div class="main-content flex flex-col items-center justify-center p-5 flex-grow">
+		<div class="main-title text-8xl font-bold mb-5 text-teal-400">TRANSCENDENCE</div>
+		<div class="menu flex flex-col">
+			<button data-tooltip="Play against a friend locally" class="my-2 px-8 py-2 text-3xl border-2 border-gray-300 bg-gray-700 text-white rounded hover:bg-teal-400 hover:border-teal-400 hover:text-white transition">LOCAL 1v1</button>
+			<button data-tooltip="Challenge a friend remotely" class="my-2 px-8 py-2 text-3xl border-2 border-gray-300 bg-gray-700 text-white rounded hover:bg-teal-400 hover:border-teal-400 hover:text-white transition">ONLINE 1v1</button>
+			<button data-tooltip="Start a knockout style tournament" class="my-2 px-8 py-2 text-3xl border-2 border-gray-300 bg-gray-700 text-white rounded hover:bg-teal-400 hover:border-teal-400 hover:text-white transition">TOURNAMENT MODE</button>
+			<button data-tooltip="Practice againt an AI opponent" class="my-2 px-8 py-2 text-3xl border-2 border-gray-300 bg-gray-700 text-white rounded hover:bg-teal-400 hover:border-teal-400 hover:text-white transition">SINGLEPLAYER AI MODE</button>
+		</div>
+		<div class="tooltip mt-5 text-xl text-gray-400 min-h-[40px]"> </div>
+	</div>
 
-<div id="opponentSelection">
-  <button id="aiOpponentButton">Play vs AI</button>
-  <button id="localOpponentButton">Play vs Local Player</button>
-  <button id="remoteOpponentButton">Play vs Remote Player</button>
-</div>
+	<div class="sidebar bg-gray-800 border-2 border-gray-300 p-10 flex flex-col w-[300px]">
+		<div class="notifications flex justify-between items-center border-2 border-gray-300 p-2 mb-5 bg-gray-700">
+			<span class="text-white">Invites / Requests</span>
+			<div class="notif-icon relative">
+			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="white" class="size-6">
+			<path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+			</svg>
+			<div class="notif-dot absolute top-[-3px] right-[-3px] w-[6px] h-[6px] bg-red-500 rounded-full"></div>
+			</div>
+		</div>
+		<div class="friends mt-4 flex-grow">
+			<h4 class="text-lg font-bold text-white">Friends</h4>
+			<p class="flex justify-between my-1 text-white"><span>[user: friends: 0]</span><span>chat</span></p>
+			<p class="flex justify-between my-1 text-white"><span>[user: friends: 1]</span><span>chat</span></p>
+			<p class="flex justify-between my-1 text-white"><span>[user: friends: 2]</span><span>chat</span></p>
+			<p class="flex justify-between my-1 text-white"><span>...</span><span>...</span></p>
+		</div>
+		<button class="user-dashboard-btn text-2xl mt-4 px-6 py-2 bg-gray-700 border-2 border-gray-300 text-white rounded hover:bg-teal-400 hover:border-teal-400 hover:text-white transition">User Dashboard</button>
+	</div>
 
-<div id="roomSelection">
-  <button id="joinRoomButton">Join Room</button>
-  <button id="leaveRoomButton">Leave Room</button>
-  <button id="tournamentButton">Tournament</button>
-</div>
-
-<div id="chat">
-  <textarea id="log" cols="50" rows="10" readonly></textarea><br />
-  <input id="msg" type="text" placeholder="Type a message..." />
-  <button id="send">Send</button>
+	<div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+		<div class="bg-gray-800 border-2 border-gray-300 rounded-lg p-8 w-[350px] relative flex flex-col items-center">
+			<button id="closeSettingsBtn" class="absolute top-3 right-3 text-white bg-gray-700 border-2 border-gray-300 rounded px-3 py-1 hover:bg-teal-400 hover:border-teal-400 transition">✕</button>
+			<h2 class="text-2xl font-bold mb-4 text-white">Account Settings</h2>
+			<button id="enable2faBtn" class="mb-4 px-4 py-2 bg-teal-400 text-gray-900 rounded hover:bg-teal-500 transition">Enable 2FA</button>
+			<div id="qrContainer" class="flex flex-col items-center"></div>
+		</div>
+	</div>
 </div>

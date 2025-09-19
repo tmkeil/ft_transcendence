@@ -3,3 +3,4 @@
 ./services/frontend/node_modules
 ./packages/shared/dist
 .DS_Store
+./services/backend/data/database.sqlite

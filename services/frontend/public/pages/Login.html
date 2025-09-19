@@ -1,25 +1,37 @@
-<!-- <h2>Login / Register</h2>
-<form id="loginForm">
-  <input id="userName" placeholder="Enter name" required />
-  <button type="submit">Continue</button>
-</form>
-<p id="loginError" style="color:red;display:none"></p> -->
+<h2 class="text-3xl font-bold text-white mb-6">Welcome, please</h2>
 
-<h2>Account</h2>
-<button id="accountButton">Login / Register</button>
+<section class="auth-container w-full max-w-[980px] mx-auto grid grid-cols-1 gap-6 items-start box-border p-5 md:grid-cols-2">
+    <!-- Login Section -->
+    <div class="auth-card bg-gray-800 border-2 border-gray-300 p-7 rounded-lg flex flex-col gap-3 min-h-[280px]">
+        <h3 class="auth-title text-3xl mb-1 text-teal-400 font-bold tracking-wide">Login</h3>
+        <form id="loginForm" class="auth-form flex flex-col" autocomplete="off" novalidate>
+            <input type="text" id="loginUsername" placeholder="Username" required
+                class="w-full box-border p-3 my-2 font-sans text-2xl bg-gray-700 text-gray-100 border-2 border-gray-300 rounded-md outline-none transition focus:shadow-[0_0_0_4px_rgba(63,191,127,0.08)] focus:border-teal-400 placeholder:text-gray-400" />
+            <input type="password" id="loginPassword" placeholder="Password" required
+                class="w-full box-border p-3 my-2 font-sans text-2xl bg-gray-700 text-gray-100 border-2 border-gray-300 rounded-md outline-none transition focus:shadow-[0_0_0_4px_rgba(63,191,127,0.08)] focus:border-teal-400 placeholder:text-gray-400" />
+            <div class="form-row flex gap-2 items-center">
+                <button type="submit" class="auth-submit text-2xl px-6 py-2 mt-2 bg-teal-200 text-gray-700 rounded-md border-none shadow hover:bg-pink-200 hover:text-gray-900 transition">Login</button>
+            </div>
+        </form>
+        <p id="loginError" class="auth-error text-pink-500 text-lg min-h-[2.2rem] mt-1" aria-live="polite"></p>
+    </div>
 
-<!-- Modal Popup -->
-<div id="accountModal"
-  style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5);">
-  <div style="background:#fff; margin:10% auto; padding:20px; width:300px; border-radius:8px; position:relative;">
-    <button id="closeModal" style="position:absolute; top:10px; right:10px;">X</button>
-    <h3 id="modalTitle">Login</h3>
-    <form id="accountForm">
-      <input type="text" id="modalUsername" placeholder="Username" required /><br />
-      <input type="password" id="modalPassword" placeholder="Password" required /><br />
-      <button type="submit" id="loginBtn">Login</button>
-      <button type="button" id="switchToRegister">Register</button>
-    </form>
-    <div id="modalError" style="color:red; margin-top:10px;"></div>
-  </div>
-</div>
+    <h3 class="text-2xl text-center text-white my-2 md:hidden">or</h3>
+
+    <!-- Register Section -->
+    <div class="auth-card bg-gray-800 border-2 border-gray-300 p-7 rounded-lg flex flex-col gap-3 min-h-[280px]">
+        <h3 class="auth-title text-3xl mb-1 text-teal-400 font-bold tracking-wide">Register</h3>
+        <form id="registerForm" class="auth-form flex flex-col" autocomplete="off" novalidate>
+            <input type="text" id="registerUsername" placeholder="Username" required
+                class="w-full box-border p-3 my-2 font-sans text-2xl bg-gray-700 text-gray-100 border-2 border-gray-300 rounded-md outline-none transition focus:shadow-[0_0_0_4px_rgba(63,191,127,0.08)] focus:border-teal-400 placeholder:text-gray-400" />
+            <input type="email" id="registerEmail" placeholder="Email" required
+                class="w-full box-border p-3 my-2 font-sans text-2xl bg-gray-700 text-gray-100 border-2 border-gray-300 rounded-md outline-none transition focus:shadow-[0_0_0_4px_rgba(63,191,127,0.08)] focus:border-teal-400 placeholder:text-gray-400" />
+            <input type="password" id="registerPassword" placeholder="Password" required
+                class="w-full box-border p-3 my-2 font-sans text-2xl bg-gray-700 text-gray-100 border-2 border-gray-300 rounded-md outline-none transition focus:shadow-[0_0_0_4px_rgba(63,191,127,0.08)] focus:border-teal-400 placeholder:text-gray-400" />
+            <div class="form-row flex gap-2 items-center">
+                <button type="submit" class="auth-submit text-2xl px-6 py-2 mt-2 bg-teal-200 text-gray-700 rounded-md border-none shadow hover:bg-pink-200 hover:text-gray-900 transition">Register</button>
+            </div>
+        </form>
+        <p id="registerError" class="auth-error text-pink-500 text-lg min-h-[2.2rem] mt-1" aria-live="polite"></p>
+    </div>
+</section>

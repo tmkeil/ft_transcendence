@@ -12,7 +12,7 @@ export class SceneBuilder {
 		const canvasElement =
 			document.getElementById(canvasId) as HTMLCanvasElement | null;
 		this.canvas = canvasElement ?? document.createElement('canvas');
-		if (!canvasElement) document.body.appendChild(this.canvas);
+		// if (!canvasElement) document.body.appendChild(this.canvas);
 		this.engine = new BABYLON.Engine(this.canvas, true);
 	}
 

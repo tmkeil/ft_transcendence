@@ -7,6 +7,7 @@ const routes: Record<string, Route> = {
     "/login": { template: "/pages/Login.html", auth: false },
     "/register": { template: "/pages/Register.html", auth: false },
     "/profile": { template: "/pages/Profile.html", auth: true },
+    "/dashboard": { template: "/pages/Dashboard.html", auth: true },
     "/404": { template: "/pages/404.html", auth: false },
 };
 
@@ -14,11 +15,14 @@ const routes: Record<string, Route> = {
 let teardown: () => void = () => {};
 
 // If the user is authenticated (has a userId in localStorage)
-const isAuthed = () => {
-  if (localStorage.getItem("userId")) {
-    return true;
-  }
-  return false;
+const isAuthed = async () => {
+  console.log("Checking authentication status...");
+  const res = await fetch(`https://${location.host}/api/me`, {
+    method: "GET",
+    credentials: "include",
+  });
+  console.log("Authentication status response:", res);
+  return res.ok;
 };
 
 // This updates the browser's history and loads the new page content.
@@ -35,6 +39,7 @@ export function navigate(path: string): void {
 // After adding the data-link via navigate, the window.history.pathname is the new URL and
 // the main-page div will be updated with the new content.
 async function handleLocation(): Promise<void> {
+    console.log("Handling location:", location.pathname);
     let path = location.pathname;
     let route = routes[path] || routes["/404"];
 
@@ -44,7 +49,8 @@ async function handleLocation(): Promise<void> {
     nav.style.display = noNav.includes(path) ? "none" : "block";
 
     // Route protection/guard. Redirect to login if not authenticated
-    if (route.auth && !isAuthed()) {
+    if (route.auth && !(await isAuthed())) {
+        console.log("User not authenticated, redirecting to /login");
         history.replaceState({}, "", "/login");
         path = "/login";
         route = routes["/login"];
@@ -68,11 +74,11 @@ async function handleLocation(): Promise<void> {
             // Call the mountLogin to set up event listeners and manage the login page
             // And execute the returned code, when navigating away from the login page
             mountLogin(root);
+            teardown = () => {};
+        } else if (path === "/dashboard") {
+            const { mountDashboard } = await import("/src/pages/Dashboard.js");
+            teardown = await mountDashboard(root);
         }
-        // else if (path === "/dashboard") {
-        //     const { mountDashboard } = await import("/src/pages/Dashboard.js");
-        //     teardown = mountDashboard(root);
-        // }
     } catch (e) {
         console.error(e);
     }

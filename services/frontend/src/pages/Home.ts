@@ -3,188 +3,104 @@ import type { ServerState } from "../interfaces/GameInterfaces.js";
 import { GameManager } from "../managers/GameManager.js";
 import { Derived } from "@app/shared";
 import { Settings } from "../game/GameSettings.js";
+import { navigate } from "../router/router.js";
 
+export const HomeController = async (root: HTMLElement) => {
 
-export const HomeController = (root: HTMLElement) => {
-  // Elements from the DOM
-  console.log("Home page");
-  const chatBox = root.querySelector<HTMLDivElement>("#chat")!;
-  const log = root.querySelector<HTMLTextAreaElement>("#log")!;
-  const msgInput = root.querySelector<HTMLInputElement>("#msg")!;
-  const sendBtn = root.querySelector<HTMLButtonElement>("#send")!;
-  const joinBtn = root.querySelector<HTMLButtonElement>("#joinRoomButton")!;
-  const leaveBtn = root.querySelector<HTMLButtonElement>("#leaveRoomButton")!;
-  const startBtn = root.querySelector<HTMLButtonElement>("#startBtn")!;
-  const stopBtn = root.querySelector<HTMLButtonElement>("#stopBtn")!;
-  const aiBtn = root.querySelector<HTMLButtonElement>("#aiOpponentButton")!;
-  const localBtn = root.querySelector<HTMLButtonElement>("#localOpponentButton")!;
-  const remoteBtn = root.querySelector<HTMLButtonElement>("#remoteOpponentButton")!;
-  const tournamentBtn = root.querySelector<HTMLButtonElement>("#tournamentButton")!;
+	// Game
+	const settings = new Settings();
+	const game = new GameManager(settings);
 
-  // Game
-  const settings = new Settings();
-  const game = new GameManager(settings);
+	const userId = (await fetch(`https://${location.host}/api/me`, { method: "GET" }).then(r => r.json())).id;
+	if (!userId) {
+		console.error("User not authenticated");
+	}
+	ws.connect(userId);
+	game.getInputHandler().bindRemoteSender((dir) => {
+		if (game.getInputHandler().isInputRemote() && ws)
+		ws.send({ type: "input", direction: dir, userId: userId });
+	});
 
-  // Remote
-  const userId = Number(localStorage.getItem("userId"));
-  ws.connect(userId);
+	// When the ws receives the message type state from the server, subscribe these callback/lambda functions to the message type via ws.ts
+	ws.on("state", (m: { type: "state"; state: ServerState }) => {
+		game.applyServerState(m.state);
+	});
 
-  game.getInputHandler().bindRemoteSender((dir) => {
-    if (game.getInputHandler().isInputRemote() && ws)
-      ws.send({ type: "input", direction: dir, userId: userId });
-  });
-  chatBox.style.display = "block";
+	const buttons = root.querySelectorAll<HTMLButtonElement>('.menu button');
+	const tooltip = root.querySelector<HTMLDivElement>('.tooltip');
+	buttons.forEach(btn => {
+		btn.addEventListener('mouseenter', () => {
+			if (tooltip)
+				tooltip.textContent = btn.getAttribute('data-tooltip') || "";
+		});
+		btn.addEventListener('mouseleave', () => {
+			if (tooltip)
+				tooltip.textContent = "";
+		});
+	});
 
-  // Actions from server like receiving chat messages, game state updates, join confirmation, game start
-  function appendLog(line: string) {
-    log.value += line + "\n";
-    log.scrollTop = log.scrollHeight;
-  }
+	const logoutBtn = root.querySelector<HTMLButtonElement>(".logout");
+	if (logoutBtn) {
+		logoutBtn.addEventListener("click", () => {
+			fetch(`https://${location.host}/api/logout`, {
+				method: "POST",
+				credentials: "include"
+			});
+			navigate("/login");
+		});
+	}
 
-  // When the ws receives the message type chat from the server, subscribe these callback/lambda functions to the message type via ws.ts
-  ws.on("chat", (m: { type: "chat"; userId: number; content: string }) => {
-    console.log("Server message: chat", m);
-    m.userId != -1 ? 
-    appendLog(`P${m.userId}: ${m.content}`) :
-    appendLog(`${m.content}`);
-  });
+	// Settings modal logic
+	const settingsBtn = root.querySelector<HTMLButtonElement>("#settingsBtn");
+	const settingsModal = root.querySelector<HTMLDivElement>("#settingsModal");
+	const closeSettingsBtn = root.querySelector<HTMLButtonElement>("#closeSettingsBtn");
+	const enable2faBtn = root.querySelector<HTMLButtonElement>("#enable2faBtn");
+	const qrContainer = root.querySelector<HTMLDivElement>("#qrContainer");
 
-  // When the ws receives the message type state from the server, subscribe these callback/lambda functions to the message type via ws.ts
-  ws.on("state", (m: { type: "state"; state: ServerState }) => {
-    game.applyServerState(m.state);
-  });
+	if (settingsBtn && settingsModal && closeSettingsBtn && enable2faBtn && qrContainer) {
+			settingsBtn.addEventListener("click", () => {
+			settingsModal.classList.remove("hidden");
+			qrContainer.innerHTML = "";
+		});
 
-  // When the ws receives the message type join from the server, subscribe these callback/lambda functions to the message type via ws.ts
-  ws.on("join", (m: { type: "join"; roomId: string; side: string; gameConfig: Derived; state: ServerState }) => {
-    console.log("Server message: joined on side: ", m.side);
-    game.setConfig(m.gameConfig);
-    game.applyServerState(m.state);
-    appendLog(`Joined ${m.roomId} as ${m.side === "left" ? "P1 (left)" : "P2 (right)"}!`);
-  });
+		closeSettingsBtn.addEventListener("click", () => {
+			settingsModal.classList.add("hidden");
+			qrContainer.innerHTML = "";
+		});
 
-  ws.on("reset", (m: { type: "reset" }) => {
-    game.stopGame();
-  });
+		enable2faBtn.addEventListener("click", async () => {
+			enable2faBtn.disabled = true;
+			enable2faBtn.textContent = "Loading...";
+			qrContainer.innerHTML = "";
+			try {
+				const res = await fetch(`https://${location.host}/api/2fa-setup?userId=${userId}`);
+				if (res.ok) {
+					const { qr } = await res.json();
+					qrContainer.innerHTML = `<div class="text-white mb-2">
+						Scan this QR code with your Authenticator app:
+						</div><img src="${qr}" alt="2FA QR" style="max-width:220px;">`;
+				} else {
+					qrContainer.innerHTML = `<div class="text-red-400">Failed to load QR code.</div>`;
+				}
+			} catch {
+				qrContainer.innerHTML = `<div class="text-red-400">Error loading QR code.</div>`;
+			}
+				enable2faBtn.disabled = false;
+				enable2faBtn.textContent = "Enable 2FA";
+		});
+	}
 
-  // When the ws receives the message type start from the server, subscribe these callback/lambda functions to the message type via ws.ts
-  ws.on("start", (m: { type: "start"; timestamp: number }) => {
-    game.setTimestamp(m.timestamp);
-    appendLog('Game started!');
-  });
-
-  ws.on("tournamentUpdate", (m: { type: "tournamentUpdate"; state: any }) => {
-    console.log("Tournament state:", m.state);
-  });
-
-
-  // Actions from this user like sending chat messages, joining a room, readying up
-  // Send chat message to server
-  const onSend = () => {
-    const text = msgInput.value.trim();
-    if (!text || !ws)
-      return;
-    console.log("Sending chat message to server:", text);
-    ws.send({ type: "chat", content: text });
-    appendLog(`Me: ${text}`);
-    msgInput.value = "";
-  };
-
-  // Join a game room and send it to the server
-  const onJoin = () => {
-    if (!ws)
-      return;
-    ws.send({ type: "join", userId: userId });
-  };
-
-  // Leave a game room and send it to the server
-  const onLeave = () => {
-    /*try {
-      ws.send({ type: "leave", userId: userId });
-    } catch {
-      ws.close();
-    }*/
-  };
-
-  // Ready up and send it to the server
-  const onStart = () => {
-    if (game.getInputHandler().isInputRemote() && ws)
-      ws.send({ type: "ready", userId: userId });
-    else if (settings.getOpponent() !== 'REMOTE') {
-      game.getGameStatus().playing = true;
-      appendLog(`Local game started! Playing against ${settings.getOpponent()}`);
-    }
-  };
-
-  const onStop = () => {
-    if (game.getGameStatus().playing)
-      appendLog(`Local game stopped!`);
-    game.stopGame();
-  };
-
-  // When clicking on the AI Opponent button, set the opponent to AI and set remote input to false
-  const onAI = () => {
-    console.log("Setting opponent to AI");
-    settings.setOpponent('AI');
-    game.getInputHandler().setRemote(false);
-  };
-  
-  // When clicking on the Local Opponent button, set the opponent to Person and set remote input to false
-  const onLocal = () => {
-    console.log("Setting opponent to Person");
-    settings.setOpponent('PERSON');
-    game.getInputHandler().setRemote(false);
-  };
-
-  // When clicking on the Remote Opponent button, set the opponent to Remote and set remote input to true
-  const onRemote = () => {
-    console.log("Setting opponent to Remote");
-    settings.setOpponent('REMOTE');
-    game.getInputHandler().setRemote(true);
-  };
-  
-  const onTournament = () => {
-    console.log("Entered Tournament Mode");
-    appendLog("Entered Tournament Mode");
-    settings.setOpponent('REMOTE');
-    ws.send({ type: "joinTournament", userId });
-    game.getInputHandler().setRemote(true);
-  };
-
-
-
-  // Add event listeners to the buttons
-  sendBtn.addEventListener("click", onSend);
-  joinBtn.addEventListener("click", onJoin);
-  leaveBtn.addEventListener("click", onLeave);
-  startBtn.addEventListener("click", onStart);
-  stopBtn.addEventListener("click", onStop);
-  aiBtn.addEventListener("click", onAI);
-  localBtn.addEventListener("click", onLocal);
-  remoteBtn.addEventListener("click", onRemote);
-  tournamentBtn.addEventListener("click", onTournament);
-  window.addEventListener("beforeunload", onLeave, { once: true });
-  window.addEventListener("unload", onLeave, { once: true });
-
-
-
-  // Cleanup function to remove event listeners when navigating away from the page
-  return () => {
-    ws.send({ type: "teardown", msg: "Teared down HomeController", userId: userId });
-    onLeave();
-    ws.close();
-    sendBtn.removeEventListener("click", onSend);
-    joinBtn.removeEventListener("click", onJoin);
-    leaveBtn.removeEventListener("click", onLeave);
-    startBtn.removeEventListener("click", onStart);
-    stopBtn.removeEventListener("click", onStop);
-    aiBtn.removeEventListener("click", onAI);
-    localBtn.removeEventListener("click", onLocal);
-    remoteBtn.removeEventListener("click", onRemote);
-    tournamentBtn.removeEventListener("click", onTournament);
-
-    window.removeEventListener("beforeunload", onLeave);
-    window.removeEventListener("unload", onLeave);
-    // remote?.disconnect();
-    // game.dispose();
-  };
+	// Cleanup function to remove event listeners when navigating away from the page
+	return () => {
+		buttons.forEach(btn => {
+			btn.removeEventListener('mouseenter', () => {});
+			btn.removeEventListener('mouseleave', () => {});
+		});
+		if (settingsBtn)
+			settingsBtn.removeEventListener("click", () => {});
+		if (closeSettingsBtn)
+			closeSettingsBtn.removeEventListener("click", () => {});
+		if (enable2faBtn)
+			enable2faBtn.removeEventListener("click", () => {});
+	};
 };
