@@ -94,6 +94,16 @@ export class Room {
   removePlayer(ws) {
     this.players.delete(ws);
     console.log(`Player removed from room ${this.id}`);
+
+    // If this room is part of a tournament, handle automatic win
+    if (this.tournamentManager && this.matchId !== undefined) {
+      // Find remaining player
+      const remainingPlayer = [...this.players.values()][0];
+      if (remainingPlayer) {
+        // Award remaining player the win
+        this.tournamentManager.recordMatchResult(this.matchId, remainingPlayer.id);
+      }
+    }
   }
 
   getPlayer(ws) {

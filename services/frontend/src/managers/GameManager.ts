@@ -1,9 +1,5 @@
 import { GameStatus, GameScene, ServerState } from "../interfaces/GameInterfaces.js";
-import {
-	GameLogic,
-	PaddleLogic,
-	SceneBuilder,
-} from "../game/index.js";
+import { GameLogic,	PaddleLogic, SceneBuilder } from "../game/index.js";
 import { InputHandler } from "./InputHandler.js";
 import { Derived, WorldConfig, buildWorld } from '@app/shared';
 import { Settings } from "../game/GameSettings.js";

@@ -132,30 +132,41 @@ export class TournamentManager {
     const match = this.tournament.matches.find((m) => m.id == matchId);
     if (!match) throw new Error("Match not found");
 
-    // same as before...
     match.winner = match.p1.id === winnerId ? match.p1 : match.p2;
     match.loser = match.p1.id === winnerId ? match.p2 : match.p1;
     match.status = "completed";
 
-    // stop room loop
+    // Stop the room loop
     if (match.room.loopInterval) {
       clearInterval(match.room.loopInterval);
       match.room.loopInterval = null;
     }
 
-    // add winner to waiting area
-    //this.tournament.waitingArea.push(match.winner);
+    // Close the room so losers are disconnected
+    for (const [ws, player] of match.room.players) {
+      if (player.id === match.loser.id) {
+        match.room.players.delete(ws);
+        if (ws && ws.readyState === 1) {
+          try {
+            ws.send(JSON.stringify({ type: "tournamentEliminated" }));
+            ws.close();
+          } catch {}
+        }
+      }
+    }
 
-    // remove losers from tournament
+    // Remove losers from tournament
     this.tournament.players = this.tournament.players.filter(
       (p) => p.id !== match.loser.id
     );
 
+    // Add winner to waiting area
     this.tournament.waitingArea.push(match.winner);
+
     this.checkRoundReady();
     this.broadcastTournament();
-    //match.room.closeRoom(match.room);
   }
+
 
   checkRoundReady() {
     const currentRoundMatches = this.tournament.matches.filter(

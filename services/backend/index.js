@@ -69,8 +69,25 @@ const clients = new Set();
 	// When a client disconnects, remove it from the clients set
 	ws.on("close", () => {
     console.log("Client disconnected in backend");
-		clients.delete(ws);
-	});
+    clients.delete(ws);
+
+    const index = rooms.findIndex(room => room.id === ws._roomId);
+    const room = rooms[index];
+    if (!room || !room.players.has(ws)) return;
+
+    // Remove disconnected player
+    room.removePlayer(ws);
+
+    // If tournament and only one player remains, award win
+    if (room.tournamentManager && room.matchId !== undefined && room.players.size === 1) {
+      const remainingPlayer = [...room.players.values()][0];
+      room.tournamentManager.recordMatchResult(room.matchId, remainingPlayer.id, "opponentLeft");
+    }
+
+    // Clean up room if empty
+    if (room.players.size === 0) rooms.splice(index, 1);
+  });
+
 
   // When (on the server side) a message is received from a client, parse it and store it in the db and broadcast it to the others
   ws.on("message", (message) => {
@@ -105,15 +122,14 @@ const clients = new Set();
       const room = rooms[index];
       ws._roomId = null;
       if (!room || !room.players.has(ws)) return;
-      if (room.loopInterval) clearInterval(room.loopInterval);
-      room.state.started = false;
-      ws.send(JSON.stringify({ type: "chat", userId: -1, content: `Left room ${ws._roomId}.` }));
-      broadcaster(room.players.keys(), ws, JSON.stringify({ type: "chat", userId, content: `User ${userId} left room ${ws._roomId}` }));
-      broadcaster(room.players.keys(), null, JSON.stringify({ type: "reset" }));
       room.removePlayer(ws);
+      broadcaster(room.players.keys(), ws, JSON.stringify({ type: "chat", userId, content: `User ${userId} left room` }));
+      try { ws.send(JSON.stringify({ type: "tournamentEliminated" })); ws.close(); } catch {}
+      if (room.tournamentManager && room.matchId !== undefined && room.players.size === 1) {
+        const remainingPlayer = [...room.players.values()][0];
+        room.tournamentManager.recordMatchResult(room.matchId, remainingPlayer.id, "opponentLeft");
+      }
       if (room.players.size === 0) rooms.splice(index, 1);
-      try { ws.close(); } catch {}
-
     } else if (type === "ready") {
       const { userId } = parsed;
       const index = rooms.findIndex(room => room.id === ws._roomId);
@@ -134,6 +150,23 @@ const clients = new Set();
     } else if (type === "joinTournament") {
       try {
         const { userId } = parsed;
+        
+        // Prevent joining a new tournament if the user is already in any active (non-completed) tournament
+        const alreadyInTournament = Object.values(tournaments).some((mgr) => {
+          // mgr is a TournamentManager instance; get its serializable tournament state
+          if (!mgr || typeof mgr.getTournament !== "function") return false;
+          const tour = mgr.getTournament();
+          if (!tour || tour.status === "completed") return false;
+          const inPlayers = Array.isArray(tour.players) && tour.players.some(p => p.id === userId);
+          const inWaiting = Array.isArray(tour.waitingArea) && tour.waitingArea.some(p => p.id === userId);
+          const inMatches = Array.isArray(tour.matches) && tour.matches.some(m => (m.p1?.id === userId) || (m.p2?.id === userId));
+          return inPlayers || inWaiting || inMatches;
+        });
+
+        if (alreadyInTournament) {
+          console.log("Already in an active tournament!");
+          return;
+        }
 
         let manager = Object.values(tournaments).find(
           (t) => t.getTournament().status === "pending" && t.getTournament().players.length < 4
