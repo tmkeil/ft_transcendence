@@ -1,9 +1,20 @@
-import { FlowGraphCubeRootBlock } from "babylonjs";
 import { navigate } from "../router/router.js";
 type ApiUser = { id: number; username?: string; email?: string };
 
 export class UserManager {
 	private currentUser: ApiUser | null = null;
+
+	async register(username: string, email: string, password: string): Promise<{ id: number, username: string, email: string } | null> {
+		const res = await fetch(`https://${location.host}/api/register`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ username, email, password }),
+			credentials: "include"
+		});
+		if (!res.ok) return null;
+		const data = await res.json();
+		return data;
+	}
 
 	async login(username: string, password: string): Promise<{ tempTok: string, mfa: boolean } | null> {
 		const res = await fetch(`https://${location.host}/api/login`, {
@@ -62,21 +73,6 @@ export class UserManager {
 
 class Login {
 	constructor(private root: HTMLElement, private userManager: UserManager) {}
-
-	// async show2FAQr(userId: number) {
-	// 	const qrContainer = document.createElement("div");
-	// 	qrContainer.style.margin = "16px 0";
-	// 	qrContainer.innerHTML = "<strong>Scan this QR code with your Authenticator app:</strong><br><img id='qr-img' style='max-width:220px;'>";
-	// 	this.root.appendChild(qrContainer);
-
-	// 	const res = await fetch(`https://${location.host}/api/2fa-setup?userId=${userId}`);
-	// 	if (res.ok) {
-	// 		const { qr } = await res.json();
-	// 		(qrContainer.querySelector("#qr-img") as HTMLImageElement).src = qr;
-	// 	} else {
-	// 		qrContainer.innerHTML = "Failed to load QR code.";
-	// 	}
-	// }
 
 	init() {
 		const loginForm = this.root.querySelector('#loginForm') as HTMLFormElement;
@@ -150,16 +146,10 @@ class Login {
 			}
 
 			try {
-				const res = await fetch(`https://${location.host}/api/register`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ username, email, password }),
-					credentials: "include"
-				});
-				if (res.ok) {
-					const user = await res.json();
+				const result = await this.userManager.register(username, email, password);
+				if (result) {
 					registerError.textContent = "";
-					alert(`Succesfully registered new user: ${user.username}`);
+					alert(`Succesfully registered new user: ${result.username}#${result.id}`);
 				} else {
 					registerError.textContent = "Registration failed. Username or email may already exist.";
 				}
@@ -172,9 +162,9 @@ class Login {
 }
 
 export const mountLogin = (root: HTMLElement) => {
-  const userManager = new UserManager();
-  new Login(root, userManager).init();
-  return () => {
-    userManager.logout();
-  };
+	const userManager = new UserManager();
+	new Login(root, userManager).init();
+	return () => {
+		userManager.logout();
+	};
 }

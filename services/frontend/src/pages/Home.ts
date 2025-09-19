@@ -3,7 +3,7 @@ import type { ServerState } from "../interfaces/GameInterfaces.js";
 import { GameManager } from "../managers/GameManager.js";
 import { Derived } from "@app/shared";
 import { Settings } from "../game/GameSettings.js";
-
+import { navigate } from "../router/router.js";
 
 export const HomeController = async (root: HTMLElement) => {
 
@@ -39,6 +39,17 @@ export const HomeController = async (root: HTMLElement) => {
 		});
 	});
 
+	const logoutBtn = root.querySelector<HTMLButtonElement>(".logout");
+	if (logoutBtn) {
+		logoutBtn.addEventListener("click", () => {
+			fetch(`https://${location.host}/api/logout`, {
+				method: "POST",
+				credentials: "include"
+			});
+			navigate("/login");
+		});
+	}
+
 	// Settings modal logic
 	const settingsBtn = root.querySelector<HTMLButtonElement>("#settingsBtn");
 	const settingsModal = root.querySelector<HTMLDivElement>("#settingsModal");
@@ -49,7 +60,7 @@ export const HomeController = async (root: HTMLElement) => {
 	if (settingsBtn && settingsModal && closeSettingsBtn && enable2faBtn && qrContainer) {
 			settingsBtn.addEventListener("click", () => {
 			settingsModal.classList.remove("hidden");
-			qrContainer.innerHTML = ""; // Clear QR on open
+			qrContainer.innerHTML = "";
 		});
 
 		closeSettingsBtn.addEventListener("click", () => {
@@ -65,7 +76,9 @@ export const HomeController = async (root: HTMLElement) => {
 				const res = await fetch(`https://${location.host}/api/2fa-setup?userId=${userId}`);
 				if (res.ok) {
 					const { qr } = await res.json();
-					qrContainer.innerHTML = `<div class="text-white mb-2">Scan this QR code with your Authenticator app:</div><img src="${qr}" alt="2FA QR" style="max-width:220px;">`;
+					qrContainer.innerHTML = `<div class="text-white mb-2">
+						Scan this QR code with your Authenticator app:
+						</div><img src="${qr}" alt="2FA QR" style="max-width:220px;">`;
 				} else {
 					qrContainer.innerHTML = `<div class="text-red-400">Failed to load QR code.</div>`;
 				}
