@@ -21,7 +21,7 @@ import { TournamentManager } from './tournament/managers/TournamentManager.js';
 // import { startGameLoop } from "./game.js";
 
 const fastify = Fastify({ logger: true });
-fastify.register(tournamentRoutes);
+fastify.register(tournamentRoutes, { prefix: '/tournaments' });
 // const db = new sqlite3.Database('./database.sqlite');
 // Initialize SQLite database in the data folder
 const db = new sqlite3.Database("./data/database.sqlite");

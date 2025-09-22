@@ -79,8 +79,9 @@ async function handleLocation(): Promise<void> {
             const { mountDashboard } = await import("/src/pages/Dashboard.js");
             teardown = await mountDashboard(root);
         } else if (path === "/tournament") {
-            const { mountDashboard } = await import("/src/pages/Tournament.js");
-            teardown = await mountDashboard(root);
+            console.log("Loading tournament page");
+            const { TournamentController } = await import("/src/pages/Tournament.js");
+            teardown = await TournamentController(root);
         }
     } catch (e) {
         console.error(e);

@@ -1,92 +1,81 @@
 import { ws } from "../services/ws.js";
-import { navigate } from "../router/router.js";
+import type { ServerState } from "../interfaces/GameInterfaces.js";
+import { GameManager } from "../managers/GameManager.js";
+import { Settings } from "../game/GameSettings.js";
 
 export const TournamentController = async (root: HTMLElement) => {
-    // Ensure user is authenticated, otherwise redirect to login
-    try {
-        const res = await fetch(`https://${location.host}/api/me`, { credentials: "include" });
-        if (!res.ok) {
-            navigate("/login");
-            return;
-        }
-        const user = await res.json();
-        if (!user || !user.id) {
-            navigate("/login");
-            return;
-        }
+  const settings = new Settings();
+  const game = new GameManager(settings);
 
-        // Ensure websocket connection (Home.ts does this normally; safe to call here)
-        try {
-            if (typeof ws.connect === "function") ws.connect(user.id);
-        } catch (err) {
-            console.warn("WS connect failed:", err);
-        }
+  const user = await fetch(`https://${location.host}/api/me`, {
+    method: "GET",
+    credentials: "include",
+  }).then((r) => r.json());
 
-        // Hook up UI controls (Tournament.html should provide these IDs/classes)
-        const joinBtn = root.querySelector("#joinTournament") as HTMLButtonElement | null;
-        const leaveBtn = root.querySelector("#leaveTournament") as HTMLButtonElement | null;
-        const backBtn = root.querySelector("#backToHome") as HTMLButtonElement | null;
-        const statusArea = root.querySelector("#tournamentStatus") as HTMLElement | null;
+  if (!user?.id) {
+    console.error("User not authenticated");
+    return () => {};
+  }
 
-        const setStatus = (txt: string) => {
-            if (statusArea) statusArea.textContent = txt;
-        };
+  // 👉 Immediately join a tournament
+  try {
+    const res = await fetch(`http://${location.hostname}:3000/tournaments/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ player: { id: user.id, username: user.username } }),
+        });
+    if (res.ok) {
+      const tournament = await res.json();
+      console.log("Joined tournament:", tournament);
 
-        if (joinBtn) {
-            joinBtn.addEventListener("click", () => {
-                try {
-                    ws.send({ type: "joinTournament", userId: user.id });
-                    setStatus("Join request sent...");
-                } catch (err) {
-                    console.error("Failed to send joinTournament:", err);
-                    setStatus("Failed to send join request.");
-                }
-            });
-        }
-
-        if (leaveBtn) {
-            leaveBtn.addEventListener("click", () => {
-                try {
-                    ws.send({ type: "leaveTournament", userId: user.id });
-                    setStatus("Left tournament / cancel request.");
-                } catch (err) {
-                    console.error("Failed to send leaveTournament:", err);
-                    setStatus("Failed to leave tournament.");
-                }
-            });
-        }
-
-        if (backBtn) {
-            backBtn.addEventListener("click", () => {
-                navigate("/");
-            });
-        }
-
-        // Optional: listen for ws messages related to tournament updates
-        const onMessage = (m: MessageEvent) => {
-            try {
-                const parsed = JSON.parse(m.data);
-                if (parsed?.type === "tournamentUpdate") {
-                    setStatus(parsed.payload?.message || "Tournament updated");
-                } else if (parsed?.type === "tournamentEliminated") {
-                    setStatus("You were eliminated from the tournament.");
-                }
-            } catch {}
-        };
-
-        // attach a temporary listener if ws exposes the raw socket
-        if ((ws as any)._socket && typeof (ws as any)._socket.addEventListener === "function") {
-            (ws as any)._socket.addEventListener("message", onMessage);
-        }
-
-        // Return teardown to be used by router when navigating away
-        return () => {
-            if ((ws as any)._socket && typeof (ws as any)._socket.removeEventListener === "function") {
-                (ws as any)._socket.removeEventListener("message", onMessage);
-            }
-        };
-    } catch (err) {
-        console.error("TournamentController error:", err);
-        navigate("/login");
+      const statusEl = root.querySelector<HTMLDivElement>("#tournamentStatus");
+      if (statusEl) {
+        statusEl.textContent = `Tournament ${tournament.id} — ${tournament.status}`;
+      }
+    } else {
+      console.error("Failed to join tournament", await res.text());
     }
+  } catch (err) {
+    console.error("Error joining tournament", err);
+  }
+
+  // Setup websocket + game like before
+  ws.connect(user.id);
+
+    // Listen for tournament updates
+    ws.on("tournamentUpdate", (msg: { type: "tournamentUpdate"; state: any }) => {
+    console.log("Tournament update:", msg.state);
+
+    const statusEl = root.querySelector<HTMLDivElement>("#tournamentStatus");
+    if (statusEl) {
+        statusEl.textContent =
+        `Tournament ${msg.state.id} — ${msg.state.status} — Round ${msg.state.round}`;
+    }
+
+    // Example: show players list dynamically
+    const playersEl = root.querySelector<HTMLUListElement>("#tournamentPlayers");
+    if (playersEl) {
+        playersEl.innerHTML = "";
+        msg.state.players.forEach((p: any) => {
+        const li = document.createElement("li");
+        li.textContent = `${p.username} (${p.ready ? "ready" : "waiting"})`;
+        playersEl.appendChild(li);
+        });
+    }
+    });
+
+  game.getInputHandler().bindRemoteSender((dir) => {
+    if (game.getInputHandler().isInputRemote() && ws) {
+      ws.send({ type: "input", direction: dir, userId: user.id });
+    }
+  });
+
+  ws.on("state", (m: { type: "state"; state: ServerState }) => {
+    game.applyServerState(m.state);
+  });
+
+  return () => {
+    // cleanup later
+  };
 };

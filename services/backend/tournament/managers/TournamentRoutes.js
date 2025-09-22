@@ -4,7 +4,7 @@ let tournaments = {};
 
 export default async function tournamentRoutes(fastify) {
   // Join tournament
-  /*fastify.post("/tournaments/join", async (req, reply) => {
+  fastify.post("/join", async (req, reply) => {
     const { player } = req.body;
 
     // Look for a pending tournament that isn’t full
@@ -19,7 +19,7 @@ export default async function tournamentRoutes(fastify) {
 
     manager.addPlayer(player, null);
     return manager.getTournament();
-  });*/
+  });
 
   // Report result
   fastify.post("/tournaments/:id/matches/:matchId/result", async (req, reply) => {
