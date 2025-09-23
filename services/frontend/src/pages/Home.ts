@@ -13,6 +13,7 @@ type UsersData = {
   level: number;
   created_at: string;
   email?: string;
+  avatar_selector?: number;
   status: "ok" | "friend" | "blocked" | "blocked_me";
 };
 
@@ -37,9 +38,15 @@ type FriendRequest = {
   created_at: string;
 };
 
+type ChatContext = {
+  peerId: number;
+  peerName: string;
+};
+let currentChat: ChatContext | null = null;
+
 // Same as in Dashboard.ts to get the users with their relationship status to render the user cards
 const getUsers = async (): Promise<UsersData[]> => {
-  console.log("Fetching users in Home page...");
+  // console.log("Fetching users in Home page...");
   const response = await fetch("/api/users");
   if (!response.ok) {
     console.error("Failed to fetch users:", response.statusText);
@@ -59,7 +66,7 @@ const getUsers = async (): Promise<UsersData[]> => {
     return [];
   }
 
-  console.log("Fetched users in Home.ts:", users);
+  // console.log("Fetched users in Home.ts:", users);
 
   const friendsRes = await fetch(`/api/users/${myUserId}/friends`);
   if (!friendsRes.ok) {
@@ -82,9 +89,9 @@ const getUsers = async (): Promise<UsersData[]> => {
   }
   const blockedMeIds = (await blockedMeRes.json()).map((b: BlocksType) => b.user_id);
 
-  console.log("Friend IDs in Home.ts:", friendIds);
-  console.log("Block IDs in Home.ts:", blockIds);
-  console.log("Blocked Me IDs in Home.ts:", blockedMeIds);
+  // console.log("Friend IDs in Home.ts:", friendIds);
+  // console.log("Block IDs in Home.ts:", blockIds);
+  // console.log("Blocked Me IDs in Home.ts:", blockedMeIds);
 
   for (const user of users) {
     if (user.id === myUserId)
@@ -105,7 +112,7 @@ const getUsers = async (): Promise<UsersData[]> => {
 // This will be called whenever the requests modal is opened and on page load to show the notify dot
 const getFriendRequests = async (myUserId: number): Promise<FriendRequest[]> => {
   try {
-    console.log("Fetching friend requests in Home page for userId", myUserId);
+    // console.log("Fetching friend requests in Home page for userId", myUserId);
     const res = await fetch(`/api/users/${myUserId}/friendRequests`);
     if (!res.ok) throw new Error(res.statusText);
     return await res.json();
@@ -119,7 +126,7 @@ const getFriendRequests = async (myUserId: number): Promise<FriendRequest[]> => 
 // So it will not be shown again via getFriendRequests().
 const acceptFriendRequest = async (requestId: number) => {
   try {
-    console.log("Accepting friend request with request id", requestId);
+    // console.log("Accepting friend request with request id", requestId);
     const res = await fetch(`/api/friendRequests/${requestId}/accept`, { method: "POST" });
     if (!res.ok) throw new Error(await res.text());
   } catch (error) {
@@ -131,7 +138,7 @@ const acceptFriendRequest = async (requestId: number) => {
 // So it will not be shown again via getFriendRequests().
 const declineFriendRequest = async (requestId: number) => {
   try {
-    console.log("Declining friend request with request id", requestId);
+    // console.log("Declining friend request with request id", requestId);
     const res = await fetch(`/api/friendRequests/${requestId}/decline`, { method: "POST" });
     if (!res.ok) throw new Error(await res.text());
   } catch (error) {
@@ -142,7 +149,7 @@ const declineFriendRequest = async (requestId: number) => {
 // This renders the friends list in the container (sidebar). Friends are users with status
 // "friend" to this user (retrieved from getUsers())
 const renderFriends = (container: HTMLUListElement, users: UsersData[], myUserId: number) => {
-  console.log("Rendering friends list in sidebar...");
+  // console.log("Rendering friends list in sidebar...");
   container.innerHTML = "";
 
   // Get the users from users, which are friends to this user
@@ -164,16 +171,16 @@ const renderFriends = (container: HTMLUListElement, users: UsersData[], myUserId
       <span class="friend_name">${f.username}</span>
       <button class="friend_chat underline text-sm" data-action="chat">chat</button>
     `;
-    li.querySelector<HTMLButtonElement>('[data-action="chat"]')?.addEventListener("click", () => {
+    const btn = li.querySelector<HTMLButtonElement>('[data-action="chat"]')!;
       // TODO: Open chat with friend f.id
-    });
+    btn.addEventListener("click", () => openChatModal(f));
     container.appendChild(li);
   }
 };
 
 // This sets up the requests modal (hidden by default) to show the friend requests
 const setNotifyDot = (show: boolean) => {
-  console.log("Setting notify dot to", show);
+  // console.log("Setting notify dot to", show);
   // Get the notif dot element
   const dot = document.getElementById("notify-dot");
   // If dot should be shown (in case there are pending requests), remove the "hidden" class which sets display: none
@@ -237,6 +244,107 @@ const openRequestsModal = () => {
   modal?.classList.remove("hidden");
 };
 
+// This binds open/close/submit listeners to the chat modal
+const prepareChatModal = async () => {
+  // Get the DOM elements from the chat modal
+  const modal = document.getElementById("chat-modal")! as HTMLDivElement;
+  const closeBtn = document.getElementById("chat-close")! as HTMLButtonElement;
+  const form = document.getElementById("chat-form")! as HTMLFormElement;
+
+  // Hide it if user clicks the close button
+  const hide = () => modal.classList.add("hidden");
+  closeBtn.addEventListener("click", hide);
+
+  // If user clicks outside the modal => hide
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) hide();
+  });
+
+  // Submit btn => Send a message to server. It gets broadcasted from there to the peer via WS.
+  // The peer receives it via ws.on("chat", ...) in HomeController
+  form.addEventListener("submit", (e) => {
+    // Prevent page reload
+    e.preventDefault();
+    // Get the text element to retrieve the text from it
+    const input = document.getElementById("chat-input") as HTMLInputElement;
+    const text = input?.value.trim();
+    // If user clicked on submit without a text => just return
+    if (!text || !currentChat) return;
+
+    // Append it locally (on the right side and green)
+    appendChatMsg(text, true);
+
+    // Send a chat message to the server
+    try {
+      ws.send({ type: "chat", content: text, to: currentChat.peerId });
+    } catch (err) {
+      console.error("WS send failed:", err);
+    }
+
+    input.value = "";
+    input.focus();
+  });
+};
+
+// This will be called when the user clicks the chat button
+// in the friends list which contains the friend's object
+const openChatModal = (friend: UsersData) => {
+  currentChat = { peerId: friend.id, peerName: friend.username };
+
+  const modal = document.getElementById("chat-modal") as HTMLDivElement;
+  const uname = document.getElementById("chat-username") as HTMLHeadingElement;
+  const history = document.getElementById("chat-history") as HTMLDivElement;
+  const avatar = document.getElementById("chat-avatar") as HTMLImageElement;
+  const input = document.getElementById("chat-input") as HTMLInputElement;
+
+  // Show the friend's name in the modal header
+  uname.textContent = friend.username;
+
+  // Clear the chat history (for now. For later perhaps load the the chat history.
+  // That would also be useful if this user has multiple chat modals open)
+  history.innerHTML = "";
+
+  modal.classList.remove("hidden");
+
+  // Focus the input field: It directly sets the cursor there
+  input?.focus();
+};
+
+// Appends a chat message to the chat
+// Will be called when the user sends a message (mine: true)
+// and when a message is received from the server
+const appendChatMsg = (text: string, mine?: boolean, fromName?: string) => {
+  const history = document.getElementById("chat-history")!;
+
+  // The message container
+  const msgContainer = document.createElement("div");
+  // Tailwind: margin auto left/right, text align left/right
+  msgContainer.className = `${mine ? "ml-auto text-right" : "mr-auto text-left"}`;
+
+  // The message
+  // Tailwind: padding x/y, rounded corners, background color, border
+  const msg = document.createElement("div");
+  msg.className = `inline-block px-3 py-2 rounded-lg border break-words max-w-[50%]
+    ${mine ? "bg-teal-600 border-teal-500 text-white" : "bg-gray-700 border-gray-600 text-gray-100"}`;
+  msg.textContent = text;
+
+  // This shows the sender's name above the message
+  if (!mine) {
+    const label = document.createElement("div");
+    // small text, gray with margin bottom
+    label.className = "text-xs text-gray-400 mb-0.5";
+    label.textContent = fromName!;
+    // Append the name above the message
+    msgContainer.appendChild(label);
+  }
+
+  msgContainer.appendChild(msg);
+  history.appendChild(msgContainer);
+  // Auto scroll to the bottom
+  history.scrollTop = history.scrollHeight;
+};
+
+
 // This renders the friend requests in the ul in the modal
 const renderFriendRequests = (
   container: HTMLUListElement,
@@ -245,8 +353,8 @@ const renderFriendRequests = (
   onAccept: (id: number) => Promise<void>,
   onDecline: (id: number) => Promise<void>
 ) => {
-  console.log("Rendering friend requests in modal", requests);
-  console.log("Users by ID map:", usersById);
+  // console.log("Rendering friend requests in modal", requests);
+  // console.log("Users by ID map:", usersById);
   container.innerHTML = "";
   // If there are no requests:
   if (!requests.length) {
@@ -357,6 +465,18 @@ export const HomeController = async (root: HTMLElement) => {
     game.applyServerState(m.state);
   });
 
+  // When the ws receives a type "chat" message from the server
+  ws.on("chat", (m: { type: "chat"; userId: number; content: string }) => {
+    // If the chat modal is opened and the message is from the current peer, append it to the chat
+    console.log("Received chat message via WS:", m);
+    if (currentChat && m.userId === currentChat.peerId) {
+      appendChatMsg(m.content, false, currentChat.peerName);
+    }
+  });
+
+  // Prepare the chat modal in the DOM and bind the open/close click logic
+  prepareChatModal();
+
   // UI Elements from the Home page to fill them dynamically
   const myNameEl = root.querySelector<HTMLDivElement>("#my-name")!;
   const myLevelEl = root.querySelector<HTMLDivElement>("#my-level")!;
@@ -393,8 +513,8 @@ export const HomeController = async (root: HTMLElement) => {
   // This refreshes the friend requests in the modal and sidebar and sets the notify dot if there are pending requests
   // Pending requests are fetched from the backend via getFriendRequests(myUserId)
   const refreshFriendRequestsUI = async () => {
-    console.log("");
-    console.log("Refreshing friend requests UI");
+    // console.log("");
+    // console.log("Refreshing friend requests UI");
     // Get the requests from the backend
     const reqs = await getFriendRequests(myUserId);
     // Show the notify dot, if there are pending requests
@@ -480,7 +600,7 @@ export const HomeController = async (root: HTMLElement) => {
 			enable2faBtn.textContent = "Loading...";
 			qrContainer.innerHTML = "";
 			try {
-				const res = await fetch(`https://${location.host}/api/2fa-setup?userId=${userId}`);
+				const res = await fetch(`https://${location.host}/api/2fa-setup?userId=${myUserId}`);
 				if (res.ok) {
 					const { qr } = await res.json();
 					qrContainer.innerHTML = `<div class="text-white mb-2">
@@ -500,6 +620,24 @@ export const HomeController = async (root: HTMLElement) => {
   // Binds the tooltip listeners
   attachTooltipListeners(root);
   return () => {
+
+    // Unsubscribe from WS messages
+    ws.off("state", (m: { type: "state"; state: ServerState }) => {
+      game.applyServerState(m.state);
+    });
+    ws.off("chat", (m: { type: "chat"; userId: number; content: string }) => {
+      if (currentChat && m.userId === currentChat.peerId) {
+        appendChatMsg(m.content, false, currentChat.peerName);
+      }
+    });    
+    // Close the WS connection
+    ws.close();
+
+    notifyArea?.removeEventListener("click", openRequestsModal);
+    logoutBtn.removeEventListener("click", () => {});
+    userDashBtn?.removeEventListener("click", () => {});
+
+    // Settings modal
 		if (settingsBtn)
 			settingsBtn.removeEventListener("click", () => {});
 		if (closeSettingsBtn)
@@ -508,3 +646,14 @@ export const HomeController = async (root: HTMLElement) => {
 			enable2faBtn.removeEventListener("click", () => {});
 	};
 };
+
+/*
+Implemented chat functionality with friends
+
+- Created a chat modal in Home.html. Styled it with tailwind classes.
+- Subsribed to 'chat' messages from server inside HomeController to setup the EventListener, when the user must update its chat history.
+- The chat opens, when the user clicks the chat button beside a friend in the sidebar. Then the currentChat global is set to this friend object.
+- Implemented applyChatMsg, which appends chat messages in the chat history in the chat modal.
+- Wether the user sent a message or received one, the message is aligned left/right and colored grey/green.
+- Setup EventListeners for the chat modal (open/close/send message)
+*/

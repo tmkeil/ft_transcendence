@@ -8,7 +8,7 @@ export function broadcaster(clients, ws, msg) {
 }
 
 // This extracts the userId from the JWT token in the cookie of the request
-export const getUserIdFromRequest = (req) => {
+export const getUserIdFromRequest = (req, fastify) => {
   try {
     const token = req.cookies?.auth;
     if (!token) throw new Error("No token");

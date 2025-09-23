@@ -40,10 +40,12 @@ class WSClient {
     this.userId = userId;
 
     // Create a new WebSocket connection
+    console.log("Connecting to WebSocket at", this.WS_URL);
     this.ws = new WebSocket(this.WS_URL);
     this.connected = true;
     // When the connection is open, flush the message queue, which is sending the messages that were queued before the connection was established
     this.ws.onopen = () => {
+      console.log("WS open", this.ws?.readyState);
       this.flush();
       this.send({ type: "hello", userId });
     };
@@ -59,12 +61,14 @@ class WSClient {
       }
     };
 
-    this.ws.onclose = () => {
+    this.ws.onclose = (ev) => {
+      console.warn("WS close", ev.code, ev.reason);
       this.connected = false;
     };
 
-    this.ws.onerror = () => {
-      this.ws?.close();
+    this.ws.onerror = (ev) => {
+      console.error("WebSocket error occurred");
+      console.error("WS error", ev);
     };
   }
 
@@ -96,6 +100,7 @@ class WSClient {
 
   // Responsible for closing the WebSocket connection
   close() {
+    console.log("Closing WebSocket connection");
     this.ws?.close();
     this.userId = undefined;
     this.connected = false;

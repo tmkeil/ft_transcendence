@@ -51,8 +51,9 @@ const clients = new Map();
 // New sockets/connections are added to the clients map (at the moment)
 // Later this should be moved to a more sophisticated user management system where new users are registered and authenticated
 fastify.get("/ws", { websocket: true }, (connection, req) => {
+	console.log("New WebSocket connection in backend");
   // Getting the userId from the JWT token in the cookie
-  const userId = getUserIdFromRequest(req);
+  const userId = getUserIdFromRequest(req, fastify);
   if (userId === -1) {
     connection.socket.close();
     return;
@@ -68,6 +69,8 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
   }
   // If the websocket is already in the set, it is simply ignored and not added to the set again
   set.add(ws);
+
+  console.log(`Current connected clients: ${[...clients.keys()]}`);
 
 	// When a client disconnects, remove it
 	ws.on("close", () => {
@@ -86,15 +89,27 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
       // {"type":"join","userId":1}
       // {"type":"leave","userId":1,"roomId":"room-123"}
       // {"type":"ready","userId":1}
+	  console.log("Received message from client:", message);
       const parsed = JSON.parse(message);
       const { type } = parsed;
       console.log(`parsed message: ${JSON.stringify(parsed)}. Type: ${type}`);
 
       if (type === "chat") {
-        const { content } = parsed;
-        await addRowToTable(db, "messages", "userId, content", `${userId}, '${content}'`);
+        const { content, to } = parsed;
+		// ws?.send({ type: "chat", content: text, to: currentChat.peerId });
+		console.log(`Received chat message from user ${userId}: ${content}, to: ${to}`);
+        // await addRowToTable(db, "messages", "userId, content", `${userId}, '${content}'`);
         // Send the message, which the client sent to all connected clients
-        broadcaster(clients, ws, JSON.stringify({ type: 'chat', userId: userId, content: content }));
+        // broadcaster(to, ws, JSON.stringify({ type: 'chat', userId: userId, content: content }));
+		console.log("Sending chat message to user", to);
+		const set = clients.get(to);
+		if (!set) return;
+		for (const socket of set) {
+			if (socket.readyState === 1) {
+				socket.send(JSON.stringify({ type: "chat", userId: userId, content: content }));
+			}
+		}
+		console.log("Chat message sent to user", to);
 
       } else if (type === "join") {
         // Join a game room
