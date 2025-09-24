@@ -1,6 +1,7 @@
-<h2 class="text-3xl font-bold text-white mb-6">Welcome, please</h2>
+<div class="flex-grow items-center justify-center p-10">
+<h2 class="text-3xl font-bold text-white mb-6 text-center">Welcome, please</h2>
 
-<section class="auth-container w-full max-w-[980px] mx-auto grid grid-cols-1 gap-6 items-start box-border p-5 md:grid-cols-2">
+<section class="auth-container w-full max-w-[480px] mx-auto flex flex-col gap-6 items-stretch box-border p-5">
     <!-- Login Section -->
     <div class="auth-card bg-gray-800 border-2 border-gray-300 p-7 rounded-lg flex flex-col gap-3 min-h-[280px]">
         <h3 class="auth-title text-3xl mb-1 text-teal-400 font-bold tracking-wide">Login</h3>
@@ -16,7 +17,12 @@
         <p id="loginError" class="auth-error text-pink-500 text-lg min-h-[2.2rem] mt-1" aria-live="polite"></p>
     </div>
 
-    <h3 class="text-2xl text-center text-white my-2 md:hidden">or</h3>
+    <!-- Or Separator -->
+    <div class="flex items-center my-2">
+        <div class="flex-grow border-t border-gray-400"></div>
+        <span class="mx-4 text-gray-300 font-semibold">or</span>
+        <div class="flex-grow border-t border-gray-400"></div>
+    </div>
 
     <!-- Register Section -->
     <div class="auth-card bg-gray-800 border-2 border-gray-300 p-7 rounded-lg flex flex-col gap-3 min-h-[280px]">
@@ -35,3 +41,4 @@
         <p id="registerError" class="auth-error text-pink-500 text-lg min-h-[2.2rem] mt-1" aria-live="polite"></p>
     </div>
 </section>
+</div>

@@ -5,6 +5,7 @@ import { Derived } from "@app/shared";
 import { Settings } from "../game/GameSettings.js";
 import { navigate } from "../router/router.js";
 
+// Function to dynamically update enable/disable 2FA button depending on the current user's settings.
 async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, qrContainer: HTMLDivElement) {
 	const userDetailsRes = await fetch(`https://${location.host}/api/users?id=${userId}`);
 	const userDetailsArr = await userDetailsRes.json();
@@ -18,7 +19,6 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 	if (mfaEnabled) {
 		btn.textContent = "Disable 2FA";
 		btn.classList.remove("bg-teal-400");
-		btn.classList.add("bg-red-500");
 		btn.onclick = async () => {
 			const code = prompt("Enter your current 2FA code to disable:");
 			if (!code) return;
@@ -44,7 +44,6 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 		};
 	} else {
 		btn.textContent = "Enable 2FA";
-		btn.classList.remove("bg-red-500");
 		btn.classList.add("bg-teal-400");
 		btn.onclick = async () => {
 			btn.disabled = true;
@@ -57,7 +56,7 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 					qrContainer.innerHTML = `<div class="text-white mb-2">
 						Scan this QR code with your Authenticator app:
 						</div><img src="${qr}" alt="2FA QR" style="max-width:220px;">`;
-					await update2FAButton(userId, btn, qrContainer); // Update after enabling
+					await update2FAButton(userId, btn, qrContainer);
 				} else {
 					qrContainer.innerHTML = `<div class="text-red-400">Failed to load QR code.</div>`;
 				}
