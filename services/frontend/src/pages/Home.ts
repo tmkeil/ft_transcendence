@@ -7,9 +7,9 @@ import { navigate } from "../router/router.js";
 
 // Function to dynamically update enable/disable 2FA button depending on the current user's settings.
 async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, qrContainer: HTMLDivElement) {
-	const userDetailsRes = await fetch(`https://${location.host}/api/users?id=${userId}`);
-	const userDetailsArr = await userDetailsRes.json();
-	const userDetails = Array.isArray(userDetailsArr) ? userDetailsArr[0] : null;
+	const userDetailsRes = await fetch(`https://${location.host}/api/users/${userId}`);
+	const userDetails = await userDetailsRes.json();
+	console.log("Type of mfaEnabled:", typeof userDetails?.mfa_enabled);
 	const mfaEnabled = userDetails?.mfa_enabled === 1;
 
 	// Remove previous click listeners
@@ -18,9 +18,8 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 
 	if (mfaEnabled) {
 		btn.textContent = "Disable 2FA";
-		btn.classList.remove("bg-teal-400");
 		btn.onclick = async () => {
-			const code = prompt("Enter your current 2FA code to disable:");
+			const code = prompt("Enter your current 2FA code to disable:"); // Modal in a modal mayhaps?
 			if (!code) return;
 			btn.disabled = true;
 			btn.textContent = "Disabling...";
@@ -32,7 +31,7 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 					credentials: "include"
 				});
 				if (res.ok) {
-					alert("2FA disabled.");
+					alert("2FA disabled."); // TODO: make these alerts text contents
 					await update2FAButton(userId, btn, qrContainer);
 				} else {
 					alert("Invalid code or error disabling 2FA.");
@@ -44,7 +43,6 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 		};
 	} else {
 		btn.textContent = "Enable 2FA";
-		btn.classList.add("bg-teal-400");
 		btn.onclick = async () => {
 			btn.disabled = true;
 			btn.textContent = "Loading...";
@@ -502,7 +500,7 @@ export const HomeController = async (root: HTMLElement) => {
   const game = new GameManager(settings);
 
   // Get the my user from the backend by fetching /api/me and sending the cookie to the server
-  const myUserRes = await fetch(`/api/me`, { method: "GET", credentials: "include" });
+  const myUserRes = await fetch(`/api/me`, { method: "GET" });
   if (!myUserRes.ok) {
     console.error("Failed to fetch my user ID:", myUserRes.statusText);
     return () => {};
@@ -633,7 +631,6 @@ export const HomeController = async (root: HTMLElement) => {
   });
 
   // Settings modal logic
-	const userId = (await fetch(`https://${location.host}/api/me`, { method: "GET" }).then(r => r.json())).id;
 	const settingsBtn = root.querySelector<HTMLButtonElement>("#settingsBtn");
 	const settingsModal = root.querySelector<HTMLDivElement>("#settingsModal");
 	const closeSettingsBtn = root.querySelector<HTMLButtonElement>("#closeSettingsBtn");
@@ -652,7 +649,7 @@ export const HomeController = async (root: HTMLElement) => {
 			settingsModal.classList.remove("hidden");
 			qrContainer.innerHTML = "";
 			if (enable2faBtn)
-        		update2FAButton(userId, enable2faBtn, qrContainer);
+        		update2FAButton(myUserId, enable2faBtn, qrContainer);
 		});
 
 		closeSettingsBtn.addEventListener("click", () => {
@@ -681,20 +678,17 @@ export const HomeController = async (root: HTMLElement) => {
 					const res = await fetch(`https://${location.host}/api/delete-account`, {
 						method: "POST",
 						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ userId, password }),
+						body: JSON.stringify({ userId: myUserId, password }),
 						credentials: "include"
 					});
 					if (res.ok)
 						navigate("/login");
-					else {
-						deletePasswordInput.value = "";
-						deletePasswordInput.placeholder = "Invalid password";
-					}
+					deletePasswordInput.value = "";
+					//TODO: Invalid password text content
 				} catch (err) {
 					console.error("Something went wrong");
 				}
 			} else {
-				deletePasswordInput.value = "";
 				deletePasswordInput.placeholder = "Please enter your password";
 			}
 		});
