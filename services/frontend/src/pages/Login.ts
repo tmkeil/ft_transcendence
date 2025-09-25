@@ -75,20 +75,7 @@ class Login {
 		const loginError = this.root.querySelector('#loginError') as HTMLParagraphElement;
 
 		const registerForm = this.root.querySelector('#registerForm') as HTMLFormElement;
-		const registerError = this.root.querySelector('#registerError') as HTMLParagraphElement;
-
-		const buttons = this.root.querySelectorAll('.menu button');
-		const tooltip = this.root.querySelector('.tooltip') as HTMLDivElement;
-
-		buttons.forEach(btn => {
-		   btn.addEventListener('mouseenter', () => {
-			  tooltip.textContent = btn.getAttribute('data-tooltip') || "";
-		   });
-		   btn.addEventListener('mouseleave', () => {
-			  tooltip.textContent = "";
-		   });
-		});
-
+		const registerMessage = this.root.querySelector('#registerMessage') as HTMLParagraphElement;
 
 		// Login flow
 		loginForm.addEventListener('submit', async (event) => {
@@ -112,7 +99,7 @@ class Login {
 					navigate("/"); // Just log them in and take them to home page.
 				else // If 2FA step is required, continue with it
 				{
-					const code = prompt("Enter your 2FA code:");
+					const code = prompt("Enter your 2FA code:"); //TODO: Make modal maybe...
 					if (!code) {
 						loginError.textContent = "2FA code required.";
 						return;
@@ -137,21 +124,33 @@ class Login {
 			const password = (this.root.querySelector('#registerPassword') as HTMLInputElement).value.trim();
 
 			if (!username || !email || !password) {
-				registerError.textContent = "All fields are required.";
+				registerMessage.classList.remove("text-green-500");
+				registerMessage.classList.add("text-pink-500");
+				registerMessage.textContent = "All fields are required.";
 				return;
 			}
 
 			try {
 				const result = await this.userManager.register(username, email, password);
 				if (result) {
-					registerError.textContent = "";
-					alert(`Succesfully registered new user: ${result.username}#${result.id}`);
+					registerMessage.classList.remove("text-pink-500");
+					registerMessage.classList.add("text-green-500");
+					registerMessage.textContent = `Succesfully registered new user: ${result.username}#${result.id}`;
 				} else {
-					registerError.textContent = "Registration failed. Username or email may already exist.";
+					// PROPOSAL (Noel): We make the login and user uniqueness based on
+					// the email instead of both username and email, that way multiple
+					// users can actually share the same username but the email must
+					// be a unique one.
+					// CAVEAT: They *must* log in using email!
+					registerMessage.classList.remove("text-green-500");
+					registerMessage.classList.add("text-pink-500");
+					registerMessage.textContent = "Registration failed. Username or email may already exist.";
 				}
 			} catch (err) {
 				console.error(err);
-				registerError.textContent = "Something went wrong.";
+				registerMessage.classList.remove("text-green-500");
+				registerMessage.classList.add("text-pink-500");
+				registerMessage.textContent = "Something went wrong.";
 			}
 		});
 	}

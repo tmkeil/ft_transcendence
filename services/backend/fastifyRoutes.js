@@ -25,7 +25,7 @@ export default async function (fastify, options) {
         if (!userId) {
             return reply.code(400).send({ error: "Invalid user ID" });
         }
-        const fields = 'id, username, email, wins, losses, level, created_at, status, "2fa_enabled"';
+        const fields = 'id, username, email, wins, losses, level, created_at, status, mfa_enabled';
         try {
             console.log("Fetching user with fields:", fields);
             const rows = await fetchAll(db, `SELECT ${fields} FROM users WHERE id = ?`, [userId]);

@@ -2,7 +2,9 @@
 // Tabels: users, messages, settings
 export function initDb(db) {
 	db.serialize(() => {
-		// Create users table with id, name, email, password_hash, created_at, number of wins, number of losses, number of draws
+		// Create users table with id (number), username (unique string), email (unique string), password hash (string),
+		// authenticator key (unique string),number of wins (number), number of losses (number), level (number), status (string),
+		// if 2fa is enabled (boolean, 0 or 1), and creation date (datetime SQL type).
 		db.run(`
 			CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY,
