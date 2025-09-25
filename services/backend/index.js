@@ -42,49 +42,8 @@ await fastify.register(fastifyCookie);
 // Call the initDb function to create the tables by the time the server starts
 initDb(db);
 
-fastify.get("/api/users", async (request, reply) => {
-  let params = [];
-  const fields = "id, username, wins, losses, level, created_at, status, mfa_enabled";
-  let sql = `SELECT ${fields} FROM users`;
-  if (request.query.id) {
-    sql += " WHERE id = ?";
-    params.push(request.query.id);
-  }
-  sql += " ORDER BY created_at DESC";
-  try {
-    const rows = await fetchAll(db, sql, params);
-    reply.send(rows);
-  } catch (err) {
-    reply.code(500).send({ error: err.message });
-  }
-});
-
-// This will send a friend request to another user
-fastify.post("/api/users/:id/sendFriendRequest", async (request, reply) => {
-  // Extract userId from the URL parameters
-  const userId = parseInt(request.params.id);
-  // Extract friendId from the request body
-  const {friendId} = request.body;
-  if (!friendId || !userId) {
-    return reply.code(400).send({ error: "Invalid user ID or friend ID" });
-  }
-  
-});
-
-fastify.post("/api/users/:id/unfriend", async (request, reply) => {
-  const userId = parseInt(request.params.id);
-  const {friendId} = request.body;
-  if (!friendId || !userId) {
-    return reply.code(400).send({ error: "Invalid user ID or friend ID" });
-  }
-  console.log("Unfriending user: ", friendId, "for user: ", userId);
-  try {
-    await removeElementFromTable(db, "friends", userId, friendId);
-    reply.send({ success: true });
-  } catch (err) {
-    reply.code(500).send({ error: err.message });
-  }
-});
+// Register routes from fastifyRoutes.js
+await fastify.register(fastifyRoutes, { db });
 
 // WebSocket map of clientIds to websockets
 const clients = new Map();
