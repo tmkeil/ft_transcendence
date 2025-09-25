@@ -362,7 +362,7 @@ fastify.get("/api/me", (request, reply) => {
 	}
 });
 
-fastify.post("/api/logout", (reply) => {
+fastify.post("/api/logout", (request, reply) => {
 	reply.clearCookie("auth", { path: "/" });
 	reply.send({ ok: true });
 });

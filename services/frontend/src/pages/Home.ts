@@ -7,66 +7,66 @@ import { navigate } from "../router/router.js";
 
 // Function to dynamically update enable/disable 2FA button depending on the current user's settings.
 async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, qrContainer: HTMLDivElement) {
-	const userDetailsRes = await fetch(`https://${location.host}/api/users?id=${userId}`);
-	const userDetailsArr = await userDetailsRes.json();
-	const userDetails = Array.isArray(userDetailsArr) ? userDetailsArr[0] : null;
-	const mfaEnabled = userDetails?.mfa_enabled === 1;
+  const userDetailsRes = await fetch(`https://${location.host}/api/users?id=${userId}`);
+  const userDetailsArr = await userDetailsRes.json();
+  const userDetails = Array.isArray(userDetailsArr) ? userDetailsArr[0] : null;
+  const mfaEnabled = userDetails?.mfa_enabled === 1;
 
-	// Remove previous click listeners
-	enable2faBtn.onclick = null;
-	const btn = enable2faBtn;
+  // Remove previous click listeners
+  enable2faBtn.onclick = null;
+  const btn = enable2faBtn;
 
-	if (mfaEnabled) {
-		btn.textContent = "Disable 2FA";
-		btn.classList.remove("bg-teal-400");
-		btn.onclick = async () => {
-			const code = prompt("Enter your current 2FA code to disable:");
-			if (!code) return;
-			btn.disabled = true;
-			btn.textContent = "Disabling...";
-			try {
-				const res = await fetch(`https://${location.host}/api/disable-2fa`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ userId, code }),
-					credentials: "include"
-				});
-				if (res.ok) {
-					alert("2FA disabled.");
-					await update2FAButton(userId, btn, qrContainer);
-				} else {
-					alert("Invalid code or error disabling 2FA.");
-					btn.textContent = "Disable 2FA";
-				}
-			} finally {
-				btn.disabled = false;
-			}
-		};
-	} else {
-		btn.textContent = "Enable 2FA";
-		btn.classList.add("bg-teal-400");
-		btn.onclick = async () => {
-			btn.disabled = true;
-			btn.textContent = "Loading...";
-			qrContainer.innerHTML = "";
-			try {
-				const res = await fetch(`https://${location.host}/api/2fa-setup?userId=${userId}`);
-				if (res.ok) {
-					const { qr } = await res.json();
-					qrContainer.innerHTML = `<div class="text-white mb-2">
+  if (mfaEnabled) {
+    btn.textContent = "Disable 2FA";
+    btn.classList.remove("bg-teal-400");
+    btn.onclick = async () => {
+      const code = prompt("Enter your current 2FA code to disable:");
+      if (!code) return;
+      btn.disabled = true;
+      btn.textContent = "Disabling...";
+      try {
+        const res = await fetch(`https://${location.host}/api/disable-2fa`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, code }),
+          credentials: "include"
+        });
+        if (res.ok) {
+          alert("2FA disabled.");
+          await update2FAButton(userId, btn, qrContainer);
+        } else {
+          alert("Invalid code or error disabling 2FA.");
+          btn.textContent = "Disable 2FA";
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  } else {
+    btn.textContent = "Enable 2FA";
+    btn.classList.add("bg-teal-400");
+    btn.onclick = async () => {
+      btn.disabled = true;
+      btn.textContent = "Loading...";
+      qrContainer.innerHTML = "";
+      try {
+        const res = await fetch(`https://${location.host}/api/2fa-setup?userId=${userId}`);
+        if (res.ok) {
+          const { qr } = await res.json();
+          qrContainer.innerHTML = `<div class="text-white mb-2">
 						Scan this QR code with your Authenticator app:
 						</div><img src="${qr}" alt="2FA QR" style="max-width:220px;">`;
-					await update2FAButton(userId, btn, qrContainer);
-				} else {
-					qrContainer.innerHTML = `<div class="text-red-400">Failed to load QR code.</div>`;
-				}
-			} catch {
-				qrContainer.innerHTML = `<div class="text-red-400">Error loading QR code.</div>`;
-			}
-			btn.disabled = false;
-			btn.textContent = "Enable 2FA";
-		};
-	}
+          await update2FAButton(userId, btn, qrContainer);
+        } else {
+          qrContainer.innerHTML = `<div class="text-red-400">Failed to load QR code.</div>`;
+        }
+      } catch {
+        qrContainer.innerHTML = `<div class="text-red-400">Error loading QR code.</div>`;
+      }
+      btn.disabled = false;
+      btn.textContent = "Enable 2FA";
+    };
+  }
 }
 
 type UsersData = {
@@ -194,7 +194,7 @@ const acceptFriendRequest = async (requestId: number) => {
     const res = await fetch(`/api/friendRequests/${requestId}/accept`, { method: "POST" });
     if (!res.ok) throw new Error(await res.text());
   } catch (error) {
-    console.error("Error accepting friend request:", error);    
+    console.error("Error accepting friend request:", error);
   }
 };
 
@@ -236,7 +236,7 @@ const renderFriends = (container: HTMLUListElement, users: UsersData[], myUserId
       <button class="friend_chat underline text-sm" data-action="chat">chat</button>
     `;
     const btn = li.querySelector<HTMLButtonElement>('[data-action="chat"]')!;
-      // TODO: Open chat with friend f.id
+    // TODO: Open chat with friend f.id
     btn.addEventListener("click", () => openChatModal(f));
     container.appendChild(li);
   }
@@ -505,15 +505,15 @@ export const HomeController = async (root: HTMLElement) => {
   const myUserRes = await fetch(`/api/me`, { method: "GET", credentials: "include" });
   if (!myUserRes.ok) {
     console.error("Failed to fetch my user ID:", myUserRes.statusText);
-    return () => {};
+    return () => { };
   }
 
   const myUserId = (await myUserRes.json()).id;
   if (myUserId === -1) {
     console.error("Failed to fetch my user ID");
-    return () => {};
+    return () => { };
   }
-  
+
   // If the userId was successfully fetched, connect the WS with the userId
   ws.connect(myUserId);
 
@@ -525,18 +525,21 @@ export const HomeController = async (root: HTMLElement) => {
   });
 
   // When the ws receives the message type state from the server, subscribe applyServerState to the message type
-  ws.on("state", (m: { type: "state"; state: ServerState }) => {
+  const stateSub = (m: { type: "state"; state: ServerState }) => {
     game.applyServerState(m.state);
-  });
+  };
 
-  // When the ws receives a type "chat" message from the server
-  ws.on("chat", (m: { type: "chat"; userId: number; content: string }) => {
-    // If the chat modal is opened and the message is from the current peer, append it to the chat
+  const chatSub = (m: { type: "chat"; userId: number; content: string }) => {
     console.log("Received chat message via WS:", m);
     if (currentChat && m.userId === currentChat.peerId) {
       appendChatMsg(m.content, false, currentChat.peerName);
     }
-  });
+  };
+
+  ws.on("state", stateSub);
+
+  // When the ws receives a type "chat" message from the server
+  ws.on("chat", chatSub);
 
   // Prepare the chat modal in the DOM and bind the open/close click logic
   prepareChatModal();
@@ -627,116 +630,113 @@ export const HomeController = async (root: HTMLElement) => {
   // Event listener for the notify area. When clicking => open requests modal
   notifyArea?.addEventListener("click", openRequestsModal);
 
-  // Event listener for the dashboard button
-  userDashBtn?.addEventListener("click", () => {
+  async function userDashBtnClick() {
     navigate("/dashboard");
-  });
+  }
+
+  // Event listener for the dashboard button
+  userDashBtn?.addEventListener("click", userDashBtnClick);
 
   // Settings modal logic
-	const userId = (await fetch(`https://${location.host}/api/me`, { method: "GET" }).then(r => r.json())).id;
-	const settingsBtn = root.querySelector<HTMLButtonElement>("#settingsBtn");
-	const settingsModal = root.querySelector<HTMLDivElement>("#settingsModal");
-	const closeSettingsBtn = root.querySelector<HTMLButtonElement>("#closeSettingsBtn");
-	const enable2faBtn = root.querySelector<HTMLButtonElement>("#enable2faBtn");
-	const qrContainer = root.querySelector<HTMLDivElement>("#qrContainer");
-	const logoutBtn = root.querySelector<HTMLButtonElement>("#logoutBtn");
-	const deleteAccountBtn = root.querySelector<HTMLButtonElement>("#deleteAccountBtn");
-	const deletionForm = root.querySelector<HTMLFormElement>("#deletionForm");
-	const deletePasswordInput = root.querySelector<HTMLInputElement>("#deletePassword");
-	const confirmDeleteBtn = root.querySelector<HTMLButtonElement>("#confirmDeleteBtn");
+  const userId = (await fetch(`https://${location.host}/api/me`, { method: "GET" }).then(r => r.json())).id;
+  const settingsBtn = root.querySelector<HTMLButtonElement>("#settingsBtn");
+  const settingsModal = root.querySelector<HTMLDivElement>("#settingsModal");
+  const closeSettingsBtn = root.querySelector<HTMLButtonElement>("#closeSettingsBtn");
+  const enable2faBtn = root.querySelector<HTMLButtonElement>("#enable2faBtn");
+  const qrContainer = root.querySelector<HTMLDivElement>("#qrContainer");
+  const logoutBtn = root.querySelector<HTMLButtonElement>("#logoutBtn");
+  const deleteAccountBtn = root.querySelector<HTMLButtonElement>("#deleteAccountBtn");
+  const deletionForm = root.querySelector<HTMLFormElement>("#deletionForm");
+  const deletePasswordInput = root.querySelector<HTMLInputElement>("#deletePassword");
+  const confirmDeleteBtn = root.querySelector<HTMLButtonElement>("#confirmDeleteBtn");
 
-	if (settingsBtn && settingsModal && closeSettingsBtn && enable2faBtn && qrContainer && logoutBtn
-		&& deleteAccountBtn && deletionForm && deletePasswordInput && confirmDeleteBtn) {
+  async function settingsBtnClick() {
+    settingsModal!.classList.remove("hidden");
+    qrContainer!.innerHTML = "";
+    if (enable2faBtn) update2FAButton(userId, enable2faBtn, qrContainer!);
+  }
 
-		settingsBtn.addEventListener("click", () => {
-			settingsModal.classList.remove("hidden");
-			qrContainer.innerHTML = "";
-			if (enable2faBtn)
-        		update2FAButton(userId, enable2faBtn, qrContainer);
-		});
+  async function logoutClick() {
+    try {
+      console.log("Logging out");
+      const res = await fetch("/api/logout", { method: "POST", credentials: "include" });
+      if (res.ok) navigate("/login");
+    } catch {
+      console.error("Logout failed");
+    }
+  }
 
-		closeSettingsBtn.addEventListener("click", () => {
-			settingsModal.classList.add("hidden");
-			qrContainer.innerHTML = "";
-		});
+  function deleteAccountBtnClick() {
+    deletionForm!.classList.remove("hidden");
+    deletePasswordInput!.value = "";
+    deletePasswordInput!.focus();
+  }
 
-		logoutBtn.addEventListener("click", async () => {
-			try {
-				await fetch("/api/logout", { method: "POST" });
-				navigate("/login");
-			} catch {}
-		});
+  async function deletionFormSubmit(event: Event) {
+    event.preventDefault();
+    const password = deletePasswordInput!.value.trim();
+    if (password) {
+      try {
+        const res = await fetch(`https://${location.host}/api/delete-account`, {
+          method: "POST",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, password }),
+          credentials: "include"
+        });
+        if (res.ok)
+          navigate("/login");
+        else {
+          deletePasswordInput!.value = "";
+          deletePasswordInput!.placeholder = "Invalid password";
+        }
+      } catch (err) {
+        console.error("Something went wrong");
+      }
+    } else {
+      deletePasswordInput!.value = "";
+      deletePasswordInput!.placeholder = "Please enter your password";
+    }
+  }
 
-		deleteAccountBtn.addEventListener("click", () => {
-			deletionForm.classList.remove("hidden");
-			deletePasswordInput.value = "";
-			deletePasswordInput.focus();
-		});
+  function closeSettingsBtnClick() {
+    settingsModal!.classList.add("hidden");
+    qrContainer!.innerHTML = "";
+    deletionForm!.classList.add("hidden");
+    deletePasswordInput!.value = "";
+  }
 
-		deletionForm.addEventListener("submit", async (event) => {
-			event.preventDefault();
-			const password = deletePasswordInput.value.trim();
-			if (password) {
-				try {
-					const res = await fetch(`https://${location.host}/api/delete-account`, {
-						method: "POST",
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ userId, password }),
-						credentials: "include"
-					});
-					if (res.ok)
-						navigate("/login");
-					else {
-						deletePasswordInput.value = "";
-						deletePasswordInput.placeholder = "Invalid password";
-					}
-				} catch (err) {
-					console.error("Something went wrong");
-				}
-			} else {
-				deletePasswordInput.value = "";
-				deletePasswordInput.placeholder = "Please enter your password";
-			}
-		});
+  if (settingsBtn && settingsModal && closeSettingsBtn && enable2faBtn && qrContainer && logoutBtn
+    && deleteAccountBtn && deletionForm && deletePasswordInput && confirmDeleteBtn) {
 
-		closeSettingsBtn.addEventListener("click", () => {
-			settingsModal.classList.add("hidden");
-			qrContainer.innerHTML = "";
-			deletionForm.classList.add("hidden");
-			deletePasswordInput.value = "";
-		});
-	}
+    settingsBtn.addEventListener("click", settingsBtnClick);
+    logoutBtn.addEventListener("click", logoutClick);
+    deleteAccountBtn.addEventListener("click", deleteAccountBtnClick);
+    deletionForm.addEventListener("submit", deletionFormSubmit);
+    closeSettingsBtn.addEventListener("click", closeSettingsBtnClick);
+  }
 
   // Binds the tooltip listeners
   attachTooltipListeners(root);
   return () => {
 
     // Unsubscribe from WS messages
-    ws.off("state", (m: { type: "state"; state: ServerState }) => {
-      game.applyServerState(m.state);
-    });
-    ws.off("chat", (m: { type: "chat"; userId: number; content: string }) => {
-      if (currentChat && m.userId === currentChat.peerId) {
-        appendChatMsg(m.content, false, currentChat.peerName);
-      }
-    });    
+    ws.off("state", stateSub);
+    ws.off("chat", chatSub);
+    
     // Close the WS connection
     ws.close();
 
     notifyArea?.removeEventListener("click", openRequestsModal);
-    logoutBtn?.removeEventListener("click", () => {});
-    userDashBtn?.removeEventListener("click", () => {});
+    userDashBtn?.removeEventListener("click", userDashBtnClick);
 
     // Settings modal
-	if (settingsBtn)
-		settingsBtn.removeEventListener("click", () => {});
-	if (closeSettingsBtn)
-		closeSettingsBtn.removeEventListener("click", () => {});
-	if (enable2faBtn)
-		enable2faBtn.removeEventListener("click", () => {});
-	if (logoutBtn)
-		logoutBtn.removeEventListener("click", () => {});
-	if (deleteAccountBtn)
-		deleteAccountBtn.removeEventListener("click", () => {});
-	};
+    if (settingsBtn)
+      settingsBtn.removeEventListener("click", settingsBtnClick);
+    if (closeSettingsBtn)
+      closeSettingsBtn.removeEventListener("click", closeSettingsBtnClick);
+    if (logoutBtn)
+      logoutBtn.removeEventListener("click", logoutClick);
+    if (deleteAccountBtn)
+      deleteAccountBtn.removeEventListener("click", deleteAccountBtnClick);
+  };
 };
