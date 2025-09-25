@@ -718,15 +718,5 @@ export const HomeController = async (root: HTMLElement) => {
 
     notifyArea?.removeEventListener("click", openRequestsModal);
     userDashBtn?.removeEventListener("click", userDashBtnClick);
-
-    // Settings modal
-    if (settingsBtn)
-      settingsBtn.removeEventListener("click", settingsBtnClick);
-    if (closeSettingsBtn)
-      closeSettingsBtn.removeEventListener("click", closeSettingsBtnClick);
-    if (logoutBtn)
-      logoutBtn.removeEventListener("click", logoutClick);
-    if (deleteAccountBtn)
-      deleteAccountBtn.removeEventListener("click", deleteAccountBtnClick);
   };
 };
