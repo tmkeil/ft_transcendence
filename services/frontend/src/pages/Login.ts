@@ -99,7 +99,7 @@ class Login {
 					navigate("/"); // Just log them in and take them to home page.
 				else // If 2FA step is required, continue with it
 				{
-					const code = prompt("Enter your 2FA code:"); //TODO: Make modal maybe...
+					const code = prompt("Enter your 2FA code:");
 					if (!code) {
 						loginError.textContent = "2FA code required.";
 						return;

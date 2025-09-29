@@ -6,7 +6,8 @@ import { Settings } from "../game/GameSettings.js";
 import { navigate } from "../router/router.js";
 
 // Function to dynamically update enable/disable 2FA button depending on the current user's settings.
-async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, qrContainer: HTMLDivElement) {
+async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, qrContainer: HTMLDivElement, message: HTMLParagraphElement) {
+	
 	const userDetailsRes = await fetch(`https://${location.host}/api/users/${userId}`);
 	const userDetails = await userDetailsRes.json();
 	const mfaEnabled = userDetails?.mfa_enabled === 1;
@@ -18,7 +19,7 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 	if (mfaEnabled) {
 		btn.textContent = "Disable 2FA";
 		btn.onclick = async () => {
-			const code = prompt("Enter your current 2FA code to disable:"); // Modal in a modal mayhaps?
+			const code = prompt("Enter your current 2FA code to disable:");
 			if (!code) return;
 			btn.disabled = true;
 			btn.textContent = "Disabling...";
@@ -30,10 +31,14 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 					credentials: "include"
 				});
 				if (res.ok) {
-					alert("2FA disabled."); // TODO: make these alerts text contents
-					await update2FAButton(userId, btn, qrContainer);
+					message.classList.remove("text-pink-500");
+					message.classList.add("text-green-500");
+					message.textContent = "2FA Diabled";
+					await update2FAButton(userId, btn, qrContainer, message);
 				} else {
-					alert("Invalid code or error disabling 2FA.");
+					message.classList.remove("text-green-500");
+					message.classList.add("text-pink-500");
+					message.textContent = "Invalid code or error disabling 2FA.";
 					btn.textContent = "Disable 2FA";
 				}
 			} finally {
@@ -53,7 +58,7 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 					qrContainer.innerHTML = `<div class="text-white mb-2">
 						Scan this QR code with your Authenticator app:
 						</div><img src="${qr}" alt="2FA QR" style="max-width:220px;">`;
-          await update2FAButton(userId, btn, qrContainer);
+          await update2FAButton(userId, btn, qrContainer, message);
         } else {
           qrContainer.innerHTML = `<div class="text-red-400">Failed to load QR code.</div>`;
         }
@@ -658,36 +663,27 @@ export const HomeController = async (root: HTMLElement) => {
 		});
 	});
 
-	const logoutBtn = root.querySelector<HTMLButtonElement>(".logout");
-	// if (logoutBtn) {
-	// 	logoutBtn.addEventListener("click", () => {
-	// 		fetch(`https://${location.host}/api/logout`, {
-	// 			method: "POST",
-	// 			credentials: "include"
-	// 		});
-	// 		navigate("/login");
-	// 	});
-	// }
-
   // Settings modal logic
 	const settingsBtn = root.querySelector<HTMLButtonElement>("#settingsBtn");
 	const settingsModal = root.querySelector<HTMLDivElement>("#settingsModal");
 	const closeSettingsBtn = root.querySelector<HTMLButtonElement>("#closeSettingsBtn");
 	const enable2faBtn = root.querySelector<HTMLButtonElement>("#enable2faBtn");
 	const qrContainer = root.querySelector<HTMLDivElement>("#qrContainer");
+	const logoutBtn = root.querySelector<HTMLButtonElement>("#logoutBtn");
 	const deleteAccountBtn = root.querySelector<HTMLButtonElement>("#deleteAccountBtn");
 	const deletionForm = root.querySelector<HTMLFormElement>("#deletionForm");
 	const deletePasswordInput = root.querySelector<HTMLInputElement>("#deletePassword");
 	const confirmDeleteBtn = root.querySelector<HTMLButtonElement>("#confirmDeleteBtn");
+	const mfaToggleMessage = root.querySelector<HTMLParagraphElement>('#mfaToggleMessage');
 
 	if (settingsBtn && settingsModal && closeSettingsBtn && enable2faBtn && qrContainer && logoutBtn
-		&& deleteAccountBtn && deletionForm && deletePasswordInput && confirmDeleteBtn) {
+		&& deleteAccountBtn && deletionForm && deletePasswordInput && confirmDeleteBtn && mfaToggleMessage) {
 
 		settingsBtn.addEventListener("click", () => {
 			settingsModal.classList.remove("hidden");
 			qrContainer.innerHTML = "";
 			if (enable2faBtn)
-        		update2FAButton(myUserId, enable2faBtn, qrContainer);
+        		update2FAButton(myUserId, enable2faBtn, qrContainer, mfaToggleMessage);
 		});
 
 		closeSettingsBtn.addEventListener("click", () => {
@@ -722,7 +718,7 @@ export const HomeController = async (root: HTMLElement) => {
 					if (res.ok)
 						navigate("/login");
 					deletePasswordInput.value = "";
-					//TODO: Invalid password text content
+					deletePasswordInput.placeholder = "Invalid password"
 				} catch (err) {
 					console.error("Something went wrong");
 				}
