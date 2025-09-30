@@ -4,6 +4,7 @@ import type { ServerState } from "../interfaces/GameInterfaces.js";
 import { GameManager } from "../managers/GameManager.js";
 import { Derived } from "@app/shared";
 import { Settings } from "../game/GameSettings.js";
+import { navigate } from "../router/router.js";
 
 export const RemoteController = (root: HTMLElement) => {
 
@@ -81,7 +82,7 @@ export const RemoteController = (root: HTMLElement) => {
 
   const onHome = () => {
     onLeave();
-    window.location.href = "/"; // redirect to home page
+    navigate("/");
   };
 
   // --- Event listeners ---
@@ -93,7 +94,6 @@ export const RemoteController = (root: HTMLElement) => {
 
   // --- Cleanup ---
   return () => {
-    ws.send({ type: "teardown", msg: "Teared down RemoteController", userId });
     onLeave();
     ws.close();
     joinBtn.removeEventListener("click", onJoin);

@@ -35,26 +35,36 @@ export const AIController = (root: HTMLElement) => {
   startBtn.addEventListener("click", onStart);
   leaveBtn.addEventListener("click", onLeave);
 
-  // --- Difficulty ---
-  easyBtn.addEventListener("click", () => {
+  const onEasy = () => {
     if (!game.getGameStatus().playing)
       settings.setAiDifficulty("EASY");
-  });
-
-  mediumBtn.addEventListener("click", () => {
+  };
+  const onMedium = () => {
     if (!game.getGameStatus().playing)
       settings.setAiDifficulty("MEDIUM");
-  });
-
-  hardBtn.addEventListener("click", () => {
+  };
+  const onHard = () => {
     if (!game.getGameStatus().playing)
       settings.setAiDifficulty("HARD");
-  });
+  };
+  // --- Difficulty ---
+  easyBtn.addEventListener("click", onEasy);
+
+  mediumBtn.addEventListener("click", onMedium);
+
+  hardBtn.addEventListener("click", onHard);
 
   // --- Cleanup ---
   return () => {
-    onLeave(); // stop game if active
+    // Just stop the game.
+    // Don't navigate away again because otherwise it would be an infinite loop =>
+    // onLeave calls navigate which calls cleanup which calls onLeave...
+    if (game.getGameStatus().playing)
+      game.stopGame();
     startBtn.removeEventListener("click", onStart);
     leaveBtn.removeEventListener("click", onLeave);
+    easyBtn.removeEventListener("click", onEasy);
+    mediumBtn.removeEventListener("click", onMedium);
+    hardBtn.removeEventListener("click", onHard);
   };
 };

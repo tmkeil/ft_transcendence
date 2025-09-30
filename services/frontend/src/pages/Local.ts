@@ -33,7 +33,11 @@ export const LocalController = (root: HTMLElement) => {
 
   // --- Cleanup ---
   return () => {
-    onLeave(); // stop game if active
+    // Just stop the game.
+    // Don't navigate away again because otherwise it would be an infinite loop =>
+    // onLeave calls navigate which calls cleanup which calls onLeave...
+    if (game.getGameStatus().playing)
+      game.stopGame();
     startBtn.removeEventListener("click", onStart);
     leaveBtn.removeEventListener("click", onLeave);
   };
