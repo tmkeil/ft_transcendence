@@ -29,6 +29,7 @@ export const AIController = (root: HTMLElement) => {
   const onLeave = () => {
     if (game.getGameStatus().playing)
       game.stopGame();
+	game.soundManager.stopTheme();
     navigate("/");
   };
 
@@ -62,8 +63,8 @@ export const AIController = (root: HTMLElement) => {
     // onLeave calls navigate which calls cleanup which calls onLeave...
     if (game.getGameStatus().playing) {
       game.stopGame();
-	  game.soundManager.stopTheme();
 	}
+	game.soundManager.stopTheme();
     startBtn.removeEventListener("click", onStart);
     leaveBtn.removeEventListener("click", onLeave);
     easyBtn.removeEventListener("click", onEasy);

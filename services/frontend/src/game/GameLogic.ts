@@ -154,9 +154,10 @@ export class GameLogic {
 		if ((ball.position.z > (this.scene.upperWall.position.z - ball.speed.vspd - 1) && ball.speed.vspd > 0)
 			|| (ball.position.z < (this.scene.bottomWall.position.z - ball.speed.vspd + 1) && ball.speed.vspd < 0))
 		{
-			this.manager.soundManager.play('bounce');
-			if (real_mode)
+			if (real_mode) {
+				this.manager.soundManager.play('bounce');
 				this.screenshake(ball.speed.vspd);
+			}
 			ball.speed.vspd *= -1;
 			//	Additional offset to avoid wall-clipping
 			ball.position.z += ball.speed.vspd;

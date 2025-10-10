@@ -14,7 +14,7 @@ export class SoundManager {
 		this.sounds['bounce'] = new Audio(bounce);
 		this.sounds['theme'] = new Audio(theme);
 		this.sounds['theme'].loop = true;
-		this.sounds['theme'].volume = 0.5;
+		this.sounds['theme'].volume = 0.25;
 	}
 
 	play(name: string) {
