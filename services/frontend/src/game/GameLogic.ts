@@ -2,8 +2,10 @@ import { Settings } from "./GameSettings.js";
 import { PaddleLogic } from "./PaddleLogic.js";
 import { GameScene, GameStatus/*, BallMesh, PaddleMesh*/ } from "../interfaces/GameInterfaces.js";
 import { Derived, movePaddles, moveBall, resetBall } from "@app/shared";
+import { GameManager } from "../managers/GameManager.js"
 
 export class GameLogic {
+	private manager: GameManager;
 	private scene: GameScene;
 	private gameStatus: GameStatus;
 	private keys: { [key: string]: boolean };
@@ -14,7 +16,8 @@ export class GameLogic {
 	private settings: Settings;
 	//private shakeTimeout: number | null = null;
 
-	constructor(scene: GameScene, gameStatus: GameStatus, keys: Record<string, boolean>, settings: Settings) {
+	constructor(manager: GameManager, scene: GameScene, gameStatus: GameStatus, keys: Record<string, boolean>, settings: Settings) {
+		this.manager = manager;
 		this.scene = scene;
 		this.gameStatus = gameStatus;
 		this.keys = keys;
@@ -113,11 +116,13 @@ export class GameLogic {
 			{
 				this.resetBall();
 				this.gameStatus.scoreR ++;
+				this.manager.onScore();
 			}
 			else	//	Block
 			{
 				ball.speed.hspd *= -1.01;
 				this.screenshake(ball.speed.hspd);
+				this.manager.onPaddleHit('left');
 			}
 		}
 
@@ -135,11 +140,13 @@ export class GameLogic {
 					return;
 				this.resetBall();
 				this.gameStatus.scoreL ++;
+				this.manager.onScore();
 			}
 			else	//	Block
 			{
 				ball.speed.hspd *= -1.01;
 				this.screenshake(ball.speed.hspd);
+				this.manager.onPaddleHit('right');
 			}
 		}
 
@@ -147,8 +154,10 @@ export class GameLogic {
 		if ((ball.position.z > (this.scene.upperWall.position.z - ball.speed.vspd - 1) && ball.speed.vspd > 0)
 			|| (ball.position.z < (this.scene.bottomWall.position.z - ball.speed.vspd + 1) && ball.speed.vspd < 0))
 		{
-			if (real_mode)
+			if (real_mode) {
+				this.manager.soundManager.play('bounce');
 				this.screenshake(ball.speed.vspd);
+			}
 			ball.speed.vspd *= -1;
 			//	Additional offset to avoid wall-clipping
 			ball.position.z += ball.speed.vspd;

@@ -3,6 +3,7 @@ import { GameLogic,	PaddleLogic, SceneBuilder } from "../game/index.js";
 import { InputHandler } from "./InputHandler.js";
 import { Derived, WorldConfig, buildWorld } from '@app/shared';
 import { Settings } from "../game/GameSettings.js";
+import { SoundManager } from './SoundManager.js';
 
 export class GameManager {
 
@@ -15,10 +16,12 @@ export class GameManager {
 	private conf!: Readonly<Derived>;
 	private settings: Settings;
 	private refresh_time: number;
+	public soundManager: SoundManager;
 
 	constructor(settings: Settings) {
 		this.settings = settings;
 		this.refresh_time = 60;
+		this.soundManager = new SoundManager();
 		this.initialize();
 	}
 
@@ -50,6 +53,7 @@ export class GameManager {
 		// send the game status for accessing scores
 		// send the input handler's keys for processing user inputs
 		this.gameLogic = new GameLogic(
+			this,
 			this.scene,
 			this.gameStatus,
 			this.inputHandler.getKeys(),
@@ -214,10 +218,20 @@ export class GameManager {
 		return this.gameStatus;
 	}
 
+	public onPaddleHit(paddle: 'left' | 'right') {
+		if (paddle === 'left')
+			this.soundManager.play('pong_p2');
+		else
+			this.soundManager.play('pong_p1');
+	}
+
+	public onScore() {
+		this.soundManager.play('ball_scored');
+	}
+
 	public stopGame(): void {
 		this.resetServerState();
 		this.gameLogic.resetTempStates();
-
 		this.gameLogic.updateScores();
 		this.scene.render();
 	}

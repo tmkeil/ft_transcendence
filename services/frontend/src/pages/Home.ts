@@ -7,12 +7,10 @@ import { navigate } from "../router/router.js";
 
 // Function to dynamically update enable/disable 2FA button depending on the current user's settings.
 async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, qrContainer: HTMLDivElement, message: HTMLParagraphElement) {
-	
 	const userDetailsRes = await fetch(`https://${location.host}/api/users/${userId}`);
 	const userDetails = await userDetailsRes.json();
 	const mfaEnabled = userDetails?.mfa_enabled === 1;
 
-	// Remove previous click listeners
 	enable2faBtn.onclick = null;
 	const btn = enable2faBtn;
 	message.textContent = "";
@@ -31,17 +29,32 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 					body: JSON.stringify({ userId, code }),
 					credentials: "include"
 				});
-				if (res.ok) { //FIXME: For some inexplicable reason, even when the response is NOT ok it still goes in this block.
+
+				console.log("Response status:", res.status);  // Log status code
+
+				// Check if response is OK (status code 2xx)
+				if (res.ok) {
+					// Success response from backend
 					message.classList.remove("text-pink-500");
 					message.classList.add("text-green-500");
-					message.textContent = "2FA Diabled";
-					//await update2FAButton(userId, btn, qrContainer, message);
+					message.textContent = "2FA Disabled";
+
+					await update2FAButton(userId, btn, qrContainer, message);
 				} else {
+					// If the response isn't OK, handle the error
+					const errorData = await res.json(); // Get error details
+					console.log("Error data:", errorData);  // Log error details
 					message.classList.remove("text-green-500");
 					message.classList.add("text-pink-500");
-					message.textContent = "Invalid code or error disabling 2FA.";
+					message.textContent = errorData.error || "Unknown error disabling 2FA.";
 					btn.textContent = "Disable 2FA";
 				}
+			} catch (err) {
+				// Handle any fetch errors (network issues, etc.)
+				message.classList.remove("text-green-500");
+				message.classList.add("text-pink-500");
+				message.textContent = "Network error. Please try again.";
+				btn.textContent = "Disable 2FA";
 			} finally {
 				btn.disabled = false;
 			}
@@ -59,17 +72,17 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 					qrContainer.innerHTML = `<div class="text-white mb-2">
 						Scan this QR code with your Authenticator app:
 						</div><img src="${qr}" alt="2FA QR" style="max-width:220px;">`;
-          //await update2FAButton(userId, btn, qrContainer, message);
-        } else {
-          qrContainer.innerHTML = `<div class="text-red-400">Failed to load QR code.</div>`;
-        }
-      } catch {
-        qrContainer.innerHTML = `<div class="text-red-400">Error loading QR code.</div>`;
-      }
-      btn.disabled = false;
-      btn.textContent = "Enable 2FA";
-    };
-  }
+				await update2FAButton(userId, btn, qrContainer, message);
+			} else {
+				qrContainer.innerHTML = `<div class="text-red-400">Failed to load QR code.</div>`;
+			}
+		} catch {
+			qrContainer.innerHTML = `<div class="text-red-400">Error loading QR code.</div>`;
+		}
+			btn.disabled = false;
+			btn.textContent = "Enable 2FA";
+		};
+	}
 }
 
 type UsersData = {

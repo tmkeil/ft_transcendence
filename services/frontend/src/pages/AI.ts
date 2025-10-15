@@ -23,11 +23,13 @@ export const AIController = (root: HTMLElement) => {
   const onStart = () => {
     if (!game.getGameStatus().playing)
       game.getGameStatus().playing = true;
+	  game.soundManager.playTheme();
   };
 
   const onLeave = () => {
     if (game.getGameStatus().playing)
       game.stopGame();
+	game.soundManager.stopTheme();
     navigate("/");
   };
 
@@ -59,8 +61,10 @@ export const AIController = (root: HTMLElement) => {
     // Just stop the game.
     // Don't navigate away again because otherwise it would be an infinite loop =>
     // onLeave calls navigate which calls cleanup which calls onLeave...
-    if (game.getGameStatus().playing)
+    if (game.getGameStatus().playing) {
       game.stopGame();
+	}
+	game.soundManager.stopTheme();
     startBtn.removeEventListener("click", onStart);
     leaveBtn.removeEventListener("click", onLeave);
     easyBtn.removeEventListener("click", onEasy);
