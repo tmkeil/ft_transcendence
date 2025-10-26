@@ -1,6 +1,8 @@
 import Fastify from "fastify";
 import sqlite3 from "sqlite3";
 import cors from "@fastify/cors";
+import { fastifyMultipart } from "@fastify/multipart";
+import { fastifyStatic } from "@fastify/static";
 import websocket from "@fastify/websocket";
 import { getOrCreateRoom, rooms } from "./gameRooms.js";
 import { initDb } from "./initDatabases.js";
@@ -10,7 +12,8 @@ import { buildWorld, movePaddles, moveBall } from "@app/shared";
 import fastifyCookie from "@fastify/cookie";
 import fastifyJWT from "@fastify/jwt";
 import tournamentRoutes from "./tournament/managers/TournamentRoutes.js";
-import { TournamentManager } from './tournament/managers/TournamentManager.js';
+import { TournamentManager } from "./tournament/managers/TournamentManager.js";
+import path from "node:path";
 
 import fastifyRoutes from "./fastifyRoutes.js";
 
@@ -40,6 +43,13 @@ await fastify.register(fastifyJWT, {
 })
 
 await fastify.register(fastifyCookie);
+
+await fastify.register(fastifyMultipart);
+
+await fastify.register(fastifyStatic, {
+  root: path.join(path.resolve(), 'data', 'public'),
+  prefix: '/api/public/', // optional: default '/'
+});
 
 // Call the initDb function to create the tables by the time the server starts
 initDb(db);

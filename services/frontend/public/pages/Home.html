@@ -4,8 +4,8 @@
     <h3 class="text-2xl font-bold mb-4 text-white">My Dashboard</h3>
 
     <div class="profile flex items-center mb-4 mydash_profile">
-      <div class="profile-pic w-24 h-24 border-2 border-gray-300 rounded-full mr-2 bg-gray-700 avatar" id="my-avatar"
-        aria-hidden="true"></div>
+      <img class="profile-pic w-24 h-24 border-2 border-gray-300 rounded-full mr-2 bg-gray-700 avatar" id="my-avatar" 
+	  	aria-hidden="true" onerror="this.onerror=null; this.src='/api/public/user_pfps/default.png'"/>
       <div class="profile-info text-white">
         <div class="mydash_name" id="my-name">USERNAME</div>
         <div class="mydash_level text-sm text-gray-400" id="my-level">Level 0</div>
@@ -127,7 +127,9 @@
 				<h2 class="text-2xl font-bold text-white">Account Settings</h2>
 				<button id="closeSettingsBtn" class="text-gray-400 hover:text-white text-2xl ml-auto">&times;</button>
 			</header>
-			<button id="enable2faBtn" class="mb-4 mt-6 px-4 py-2 bg-teal-400 text-gray-900 rounded hover:bg-teal-500 transition">Enable 2FA</button>
+			<button id="changePfpBtn" class="mb-4 mt-6 px-4 py-2 bg-teal-400 text-gray-900 rounded hover:bg-teal-500 transition">Change Avatar</button>
+			<input id="pfpInput" type="file" name="file" accept="image/*" class="hidden">
+			<button id="enable2faBtn" class="mb-4 px-4 py-2 bg-teal-400 text-gray-900 rounded hover:bg-teal-500 transition">Enable 2FA</button>
 			<div id="qrContainer" class="flex flex-col items-center"></div>
 			<button id="logoutBtn" class="mb-4 px-4 py-2 bg-teal-400 text-gray-900 rounded hover:bg-teal-500 transition">Log Out</button>
 			<button id="deleteAccountBtn" class="mb-4 px-4 py-2 bg-teal-400 text-gray-900 rounded hover:bg-red-500 transition">Delete Account</button>

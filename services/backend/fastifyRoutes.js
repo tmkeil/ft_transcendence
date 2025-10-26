@@ -1,7 +1,10 @@
 import { fetchAll, addRowToTable, removeRowFromTable } from "./DatabaseUtils.js";
+import fs from "node:fs";
+import { pipeline } from "node:stream/promises";
 import bcrypt from 'bcryptjs';
 import { authenticator } from 'otplib';
 import qrcode from 'qrcode';
+import { getUserIdFromRequest, INVALID_USER } from './utils.js';
 
 export default async function (fastify, options) {
     const db = options.db;
@@ -460,5 +463,32 @@ export default async function (fastify, options) {
 				reply.send({ success: true });
 			}
 		);
+	});
+
+	fastify.post("/api/users/:id/change-pfp", async (request, reply) => {
+		const requestUserId = parseInt(request.params.id);
+		const tokenUserId = getUserIdFromRequest(request, fastify);
+		if (requestUserId == tokenUserId) {
+  			const options = { limits: { fileSize: 10_000_000 } };
+			const data = await request.file(options);
+			if (data.mimetype.startsWith("image/")) {
+  				await pipeline(data.file, fs.createWriteStream(`data/public/user_pfps/${tokenUserId}`));
+				reply.send();
+			} else {
+				reply.code(400).send({ error: "Wrong file format" });
+			}
+		} else {
+			reply.code(401).send({ error: "Not Authenticated" });
+		}
+	});
+
+	fastify.get("/api/users/:id/pfp", (request, reply) => {
+		const requestUserId = parseInt(request.params.id);
+		const tokenUserId = getUserIdFromRequest(request, fastify);
+		if (tokenUserId != INVALID_USER) {
+			reply.sendFile(`user_pfps/${requestUserId}`);
+		} else {
+			reply.code(401).send({ error: "Not Authenticated" });
+		}
 	});
 };

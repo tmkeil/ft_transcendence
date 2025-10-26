@@ -7,7 +7,7 @@ import { navigate } from "../router/router.js";
 
 // Function to dynamically update enable/disable 2FA button depending on the current user's settings.
 async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, qrContainer: HTMLDivElement, message: HTMLParagraphElement) {
-	const userDetailsRes = await fetch(`https://${location.host}/api/users/${userId}`);
+	const userDetailsRes = await fetch(`/api/users/${userId}`);
 	const userDetails = await userDetailsRes.json();
 	const mfaEnabled = userDetails?.mfa_enabled === 1;
 
@@ -23,7 +23,7 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 			btn.disabled = true;
 			btn.textContent = "Disabling...";
 			try {
-				const res = await fetch(`https://${location.host}/api/disable-2fa`, {
+				const res = await fetch(`/api/disable-2fa`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ userId, code }),
@@ -66,7 +66,7 @@ async function update2FAButton(userId: number, enable2faBtn: HTMLButtonElement, 
 			btn.textContent = "Loading...";
 			qrContainer.innerHTML = "";
 			try {
-				const res = await fetch(`https://${location.host}/api/2fa-setup?userId=${userId}`);
+				const res = await fetch(`/api/2fa-setup?userId=${userId}`);
 				if (res.ok) {
 					const { qr } = await res.json();
 					qrContainer.innerHTML = `<div class="text-white mb-2">
@@ -133,7 +133,7 @@ const getUsers = async (): Promise<UsersData[]> => {
     return [];
   }
 
-  const myUserRes = await fetch(`https://${location.host}/api/me`, { method: "GET" });
+  const myUserRes = await fetch(`/api/me`, { method: "GET" });
   if (!myUserRes.ok) {
     console.error("Failed to fetch my user ID:", myUserRes.statusText);
     return [];
@@ -558,6 +558,7 @@ export const HomeController = async (root: HTMLElement) => {
   prepareChatModal();
 
   // UI Elements from the Home page to fill them dynamically
+  const myProfilePicEl = root.querySelector<HTMLImageElement>("#my-avatar")!;
   const myNameEl = root.querySelector<HTMLDivElement>("#my-name")!;
   const myLevelEl = root.querySelector<HTMLDivElement>("#my-level")!;
   const myWinsEl = root.querySelector<HTMLSpanElement>("#my-wins")!;
@@ -566,6 +567,8 @@ export const HomeController = async (root: HTMLElement) => {
   const friendsListEl = root.querySelector<HTMLUListElement>("#friends-list")!;
   const notifyArea = root.querySelector<HTMLElement>(".notifications");
   const userDashBtn = root.querySelector<HTMLButtonElement>("#user-dashboard-btn");
+
+  myProfilePicEl.src = `/api/users/${myUserId}/pfp`;
 
   // Prepare the modal in the DOM
   createRequestsModal(root);
@@ -699,6 +702,7 @@ export const HomeController = async (root: HTMLElement) => {
 	const settingsBtn = root.querySelector<HTMLButtonElement>("#settingsBtn");
 	const settingsModal = root.querySelector<HTMLDivElement>("#settingsModal");
 	const closeSettingsBtn = root.querySelector<HTMLButtonElement>("#closeSettingsBtn");
+	const changePfpBtn = root.querySelector<HTMLButtonElement>("#changePfpBtn");
 	const enable2faBtn = root.querySelector<HTMLButtonElement>("#enable2faBtn");
 	const qrContainer = root.querySelector<HTMLDivElement>("#qrContainer");
 	const logoutBtn = root.querySelector<HTMLButtonElement>("#logoutBtn");
@@ -706,16 +710,43 @@ export const HomeController = async (root: HTMLElement) => {
 	const deletionForm = root.querySelector<HTMLFormElement>("#deletionForm");
 	const deletePasswordInput = root.querySelector<HTMLInputElement>("#deletePassword");
 	const confirmDeleteBtn = root.querySelector<HTMLButtonElement>("#confirmDeleteBtn");
-	const mfaToggleMessage = root.querySelector<HTMLParagraphElement>('#mfaToggleMessage');
+	const message = root.querySelector<HTMLParagraphElement>('#mfaToggleMessage');
+	const pfpInput = root.querySelector<HTMLInputElement>('#pfpInput');
 
-	if (settingsBtn && settingsModal && closeSettingsBtn && enable2faBtn && qrContainer && logoutBtn
-		&& deleteAccountBtn && deletionForm && deletePasswordInput && confirmDeleteBtn && mfaToggleMessage) {
+	if (settingsBtn && settingsModal && closeSettingsBtn && changePfpBtn && enable2faBtn && qrContainer && logoutBtn
+		&& deleteAccountBtn && deletionForm && deletePasswordInput && confirmDeleteBtn && message && pfpInput) {
+
+		changePfpBtn.addEventListener("click", () => {
+			pfpInput.click();
+		});
+
+		pfpInput.addEventListener("change", async (e) => {
+			const target = e.target as HTMLInputElement;
+			const files = target.files as FileList;
+			if (files[0]) {
+				const formData = new FormData();
+				formData.append("file", files[0]);
+				const res = await fetch(`/api/users/${myUserId}/change-pfp`, {
+					method: "POST",
+					body: formData
+				});
+				if (res.ok) {
+					message.classList.remove("text-pink-500");
+					message.classList.add("text-green-500");
+					message.textContent = "Avatar Updated";	
+				} else {
+					message.classList.remove("text-green-500");
+					message.classList.add("text-pink-500");
+					message.textContent = "Error: the file must be an image smaller than 10MB.";	
+				}
+			}
+		});
 
 		settingsBtn.addEventListener("click", () => {
 			settingsModal.classList.remove("hidden");
 			qrContainer.innerHTML = "";
 			if (enable2faBtn)
-        		update2FAButton(myUserId, enable2faBtn, qrContainer, mfaToggleMessage);
+        		update2FAButton(myUserId, enable2faBtn, qrContainer, message);
 		});
 
 		closeSettingsBtn.addEventListener("click", () => {
@@ -741,7 +772,7 @@ export const HomeController = async (root: HTMLElement) => {
 			const password = deletePasswordInput.value.trim();
 			if (password) {
 				try {
-					const res = await fetch(`https://${location.host}/api/delete-account`, {
+					const res = await fetch(`/api/delete-account`, {
 						method: "POST",
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ userId: myUserId, password }),

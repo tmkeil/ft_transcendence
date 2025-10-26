@@ -204,6 +204,7 @@ export const mountDashboard = async (root: HTMLElement) => {
   }
 
   // My Dashboard elements
+  const myProfilePicEl = root.querySelector<HTMLImageElement>("#my-avatar")!;
   const myNameEl = root.querySelector("#my-name") as HTMLDivElement;
   const myLevelEl = root.querySelector("#my-level") as HTMLDivElement;
   const myWinsEl = root.querySelector("#my-wins") as HTMLSpanElement;
@@ -211,6 +212,7 @@ export const mountDashboard = async (root: HTMLElement) => {
   const myWinrateEl = root.querySelector("#my-winrate") as HTMLSpanElement;
   const myAvatarEl = root.querySelector("#my-avatar") as HTMLDivElement;
   // Update the My Dashboard section with the user's data
+  myProfilePicEl.src = `/api/users/${myUser.id}/pfp`;
   myNameEl.textContent = myUser.username;
   myLevelEl.textContent = `Level ${myUser.level}`;
   myWinsEl.textContent = myUser.wins.toString();
@@ -229,7 +231,8 @@ export const mountDashboard = async (root: HTMLElement) => {
     li.innerHTML = `
     <li class="usercard" data-user-id="${user.id}" data-status="${user.status}">
         <div class="usercard_left">
-          <div class="avatar">A</div>
+          <img class="avatar" src="/api/users/${user.id}/pfp" onerror="this.onerror=null; this.src='/api/public/user_pfps/default.png'"/>
+		  </div>
           <div class="usercard_meta">
             <div class="usercard_name">${user.username}</div>
             <div class="usercard_level">Level ${level}</div>
@@ -327,9 +330,6 @@ export const mountDashboard = async (root: HTMLElement) => {
   const usersListEl = root.querySelector("#users-list") as HTMLUListElement;
   // Render the user cards
   renderUserCards(usersListEl, users, userId, myUser);
-
-  // User Dashboard elements
-  const searchInput = root.querySelector("#user-search") as HTMLInputElement;
 
   return () => {
     console.log("Unmounting Dashboard");

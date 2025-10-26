@@ -29,6 +29,20 @@ export const getUserIdFromRequest = (req, fastify) => {
     return userId;
   } catch (error) {
     console.error("Error getting userId from request:", error);
-    return -1;
+    return INVALID_USER;
   }
+}
+
+export const INVALID_USER = -1;
+
+export function verifyUser(request) {
+	try {
+		const token = request.cookies?.auth;
+		if (!token) throw new Error("No token");
+		// Verify and decode the token
+		const payload = fastify.jwt.verify(token);
+		return payload;
+	} catch {
+		return null;
+	}
 }
