@@ -39,7 +39,7 @@ await fastify.register(cors, {
 await fastify.register(websocket);
 
 await fastify.register(fastifyJWT, {
-	secret: process.env.JWT_SECRET || "supersecret"
+	secret: process.env.JWT_SECRET // || "supersecret"
 })
 
 await fastify.register(fastifyCookie);

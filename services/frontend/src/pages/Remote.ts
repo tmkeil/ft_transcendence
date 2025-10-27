@@ -47,11 +47,13 @@ export const RemoteController = (root: HTMLElement) => {
   ws.on("reset", () => {
     game.stopGame();
     tournamentStatus.textContent = "Game reset.";
+    game.soundManager.stopTheme();
   });
 
   ws.on("start", (m: { type: "start"; timestamp: number }) => {
     game.setTimestamp(m.timestamp);
     tournamentStatus.textContent = "Game started!";
+    game.soundManager.playTheme();
   });
 
   // --- Outgoing actions ---
@@ -71,6 +73,7 @@ export const RemoteController = (root: HTMLElement) => {
     } catch {
       ws.close();
     }
+    game.soundManager.stopTheme();
   };
 
   const onStart = () => {
@@ -99,6 +102,7 @@ export const RemoteController = (root: HTMLElement) => {
     joinBtn.removeEventListener("click", onJoin);
     leaveBtn.removeEventListener("click", onHome);
     startBtn.removeEventListener("click", onStart);
+    game.soundManager.stopTheme();
     window.removeEventListener("beforeunload", onLeave);
     window.removeEventListener("unload", onLeave);
   };

@@ -42,6 +42,8 @@ services:
     volumes:
       - ./services/backend/data:/app/services/backend/data
       # - backend_data:/app
+    environment:
+      - JWT_SECRET: ${JWT_SECRET}
 
 volumes:
   frontend_node_modules:

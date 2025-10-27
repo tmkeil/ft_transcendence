@@ -23,7 +23,7 @@ export const AIController = (root: HTMLElement) => {
   const onStart = () => {
     if (!game.getGameStatus().playing)
       game.getGameStatus().playing = true;
-	  game.soundManager.playTheme();
+	game.soundManager.playTheme();
   };
 
   const onLeave = () => {
