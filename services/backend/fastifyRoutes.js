@@ -106,11 +106,9 @@ export default async function (fastify, options) {
 
     // Get the users that the given user has sent friend requests to
     // Its needed to deactivate the friend request button on the frontend
-    fastify.get("/api/users/:id/sentFriendRequests", async (request, reply) => {
+    fastify.get("/api/users/:id/sentFriendRequests", { preHandler: checkAuthorization }, async (request, reply) => {
         const userId = parseInt(request.params.id);
-        if (!userId) {
-            return reply.code(400).send({ error: "Invalid user ID" });
-        }
+
         try {
             const rows = await fetchAll(db, `SELECT * FROM friend_requests WHERE sender_id = ?`, [userId]);
             console.log("Fetched sent friend requests: ", rows);

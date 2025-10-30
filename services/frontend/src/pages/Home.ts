@@ -580,10 +580,12 @@ export const HomeController = async (root: HTMLElement) => {
     const winsEl = document.getElementById("home-users-wins") as HTMLDivElement;
     const lossesEl = document.getElementById("home-users-losses") as HTMLDivElement;
     const winrateEl = document.getElementById("home-users-winrate") as HTMLDivElement;
+    const avatarEl = document.getElementById("home-users-avatar") as HTMLImageElement;
 
     // Populate user data
     usernameEl.textContent = user.username;
     levelEl.textContent = `Level ${user.level}`;
+    avatarEl.src = `/api/users/${user.id}/pfp`;
     winsEl.textContent = user.wins.toString();
     lossesEl.textContent = user.losses.toString();
     
@@ -712,7 +714,7 @@ export const HomeController = async (root: HTMLElement) => {
 
     // Show the friend's name in the modal header
     uname.textContent = friend.username;
-    avatar.textContent = friend.username.charAt(0).toUpperCase();
+    avatar.src = `/api/users/${friend.id}/pfp`;
 
     // Add click handlers to username and avatar to open Users Modal
     const clickHandler = () => {

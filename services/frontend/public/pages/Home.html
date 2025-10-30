@@ -94,9 +94,8 @@
     <div class="bg-gray-800 border border-gray-300 rounded-xl w-[min(720px,92vw)] max-h-[80vh] flex flex-col shadow">
       <!-- flex to arrange avatar, username, and close button with a gap, padding -->
       <header class="flex items-center gap-3 p-3 border-b border-gray-300">
-        <div id="chat-avatar"
-          class="w-10 h-10 rounded-full bg-gray-700 border border-gray-300 grid place-items-center font-bold">
-        </div>
+        <img class="profile-pic w-10 h-10 border-2 border-gray-300 rounded-full mr-2 bg-gray-700 avatar" id="chat-avatar"
+        aria-hidden="true" onerror="this.onerror=null; this.src='/api/public/user_pfps/default.png'" />
         <!-- White text, larger font size -->
         <h3 id="chat-username" class="text-white text-lg">Username</h3>
         <!-- Close btn margin-left auto to push it to the right -->
@@ -152,10 +151,9 @@
   <div class="bg-gray-800 border border-gray-300 rounded-xl w-[min(500px,92vw)] flex flex-col shadow">
     <!-- Header: flexing avatar, username, and close button with a gap -->
     <header class="flex items-center gap-3 p-4 border-b border-gray-300">
-        <!-- Round avatar -->
-      <div id="home-users-avatar"
-        class="w-16 h-16 rounded-full bg-gray-700 border border-gray-300">
-      </div>
+        <!-- Round avatar --> 
+      <img class="profile-pic w-16 h-16 border-2 border-gray-300 rounded-full mr-2 bg-gray-700 avatar" id="home-users-avatar"
+        aria-hidden="true" onerror="this.onerror=null; this.src='/api/public/user_pfps/default.png'" />
       <!-- Username and Level -->
       <div class="flex-1">
         <h3 id="home-users-username" class="text-white text-xl font-bold">Username</h3>

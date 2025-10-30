@@ -3,5 +3,5 @@
 /packages/shared/dist
 .DS_Store
 /services/backend/data/database.sqlite
-/services/backend/data/public/user_pfps/1
+/services/backend/data/public/user_pfps/
 !/services/backend/data/public/user_pfps/default.png

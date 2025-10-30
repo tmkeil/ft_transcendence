@@ -356,7 +356,7 @@ export const mountDashboard = async (root: HTMLElement) => {
     const modal = document.getElementById("dashboard-users-modal") as HTMLDivElement;
     const usernameEl = document.getElementById("dashboard-users-username") as HTMLHeadingElement;
     const levelEl = document.getElementById("dashboard-users-level") as HTMLParagraphElement;
-    const avatarEl = document.getElementById("dashboard-users-avatar") as HTMLDivElement;
+    const avatarEl = document.getElementById("dashboard-users-avatar") as HTMLImageElement;
     const winsEl = document.getElementById("dashboard-users-wins") as HTMLDivElement;
     const lossesEl = document.getElementById("dashboard-users-losses") as HTMLDivElement;
     const winrateEl = document.getElementById("dashboard-users-winrate") as HTMLDivElement;
@@ -367,7 +367,7 @@ export const mountDashboard = async (root: HTMLElement) => {
     // Fill the modal
     usernameEl.textContent = user.username;
     levelEl.textContent = `Level ${user.level}`;
-    avatarEl.textContent = user.username.charAt(0).toUpperCase();
+    avatarEl.src = `/api/users/${user.id}/pfp`;
     winsEl.textContent = user.wins.toString();
     lossesEl.textContent = user.losses.toString();
     

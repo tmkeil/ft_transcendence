@@ -47,10 +47,9 @@
   <div class="bg-gray-800 border border-gray-300 rounded-xl w-[min(500px,92vw)] flex flex-col shadow">
     <!-- Header: flexing avatar, username, and close button with a gap -->
     <header class="flex items-center gap-3 p-4 border-b border-gray-300">
-        <!-- Round avatar -->
-      <div id="dashboard-users-avatar"
-        class="w-16 h-16 rounded-full bg-gray-700 border border-gray-300">
-      </div>
+        <!-- Round avatar --> 
+      <img class="profile-pic w-16 h-16 border-2 border-gray-300 rounded-full mr-2 bg-gray-700 avatar" id="dashboard-users-avatar"
+        aria-hidden="true" onerror="this.onerror=null; this.src='/api/public/user_pfps/default.png'" />
       <!-- Username and Level -->
       <div class="flex-1">
         <h3 id="dashboard-users-username" class="text-white text-xl font-bold">Username</h3>
