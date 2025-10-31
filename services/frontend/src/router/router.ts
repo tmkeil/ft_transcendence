@@ -33,7 +33,6 @@ export function navigate(path: string): void {
     console.log(`Navigating to ${path}`);
     // When navigating away, call the previous page's teardown function
     teardown();
-    // Reset the teardown function to a no-op
     teardown = () => {};
     history.pushState({}, "", path);
     handleLocation();
@@ -42,6 +41,8 @@ export function navigate(path: string): void {
 // After adding the data-link via navigate, the window.history.pathname is the new URL and
 // the main-page div will be updated with the new content.
 async function handleLocation(): Promise<void> {
+    teardown();
+    teardown = () => {};
     console.log("Handling location:", location.pathname);
     let path = location.pathname;
     let route = routes[path] || routes["/404"];
