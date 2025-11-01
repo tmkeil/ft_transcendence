@@ -111,6 +111,8 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 		// const userId = room.getPlayer(ws)?.id;
 
 		// Remove disconnected player
+		ws._roomId = null;
+		ws._side = null;
 		room.removePlayer(ws);
 
 		// Tournament cleanup
@@ -263,7 +265,7 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 				}
 			} else {
 				// Otherwise just join any random open regular room
-				room = getOrCreateRoom();
+				room = getOrCreateRoom(parsed.roomId);
 			}
 			
 			if (room.players.has(ws)) return;
@@ -289,6 +291,7 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 			if (room.tournamentManager && userId) {
 				room.tournamentManager.handleDisconnect(userId);
 			}
+			room.closeRoom();
 			if (room.players.size === 0) rooms.splice(index, 1);
 		} else if (type === "ready") {
 			const { userId } = parsed;
@@ -304,8 +307,8 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 			const index = rooms.findIndex(room => room.id === ws._roomId);
 			const room = rooms[index];
 			if (!room || !room.state.started) return;
-			if (ws._side === "left") room.inputs.left = direction;
-			else if (ws._side === "right") room.inputs.right = direction;
+			if (ws._side === "left") room.inputQueue.left.push(direction);
+			else if (ws._side === "right") room.inputQueue.right.push(direction);
 
 		} else if (type === "joinTournament") {
 			try {
@@ -358,7 +361,7 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 
 export function startLoop(room) {
 	// If the game is already started, do nothing
-	if (room.state.started) return;
+	if (room.state.started || room.loopInterval) return;
 
 	// If both players are ready, start the game
 	if (room.players.size === 2 && Array.from(room.players.values()).every((p) => p.ready)) {
@@ -375,11 +378,15 @@ export function startLoop(room) {
 	}
 }
 
-export function stopRoom(room, roomId) {
+export function stopRoom(room) {
 	// Stop the loop for this room
 	if (room && room.loopInterval) {
 		clearInterval(room.loopInterval);
 		room.loopInterval = null;
+	}
+
+	if (room.players.size !== 0) {
+
 	}
 
 	// Remove from global rooms array (use passed roomId or room.id)
@@ -393,6 +400,11 @@ export function stopRoom(room, roomId) {
 // This function is called every 33ms to update the game state based on the current state and player input.
 // Then broadcast it to the players, so that they can render the new state
 export function loop(room) {
+	if (room.inputQueue.right.length > 0)
+		room.inputs.right = room.inputQueue.right.shift();
+	if (room.inputQueue.left.length > 0)
+		room.inputs.left = room.inputQueue.left.shift();
+
 	let prevState = JSON.stringify(room.state);
 
 	// console.log("Game room tick. GameStatus:", room.state);

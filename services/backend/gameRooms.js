@@ -7,7 +7,7 @@ export const rooms = [];
 export class Room {
   constructor(customId = null, type = "regular") {
     this.id = customId || nextRoomId++;
-	this.name = "default";
+	this.name = customId;
     this.players = new Map();
     // Date when the room was created
     this.createdAt = Date.now();
@@ -24,6 +24,7 @@ export class Room {
     this.ballV = resetBall();
     this.loopInterval = null;
     this.inputs = { left: 0, right: 0 };
+	this.inputQueue = { left: [], right: []}
     // As optional parameters to override the default values e.g. buildWorld({ FIELD_WIDTH: 120, FIELD_HEIGHT: 50 })
   }
 
@@ -43,17 +44,16 @@ export class Room {
   }
 
 
-  closeRoom(room) {
-    if (!room) return;
+  closeRoom() {
 
     // Stop loop if running
-    if (room.loopInterval) {
-      clearInterval(room.loopInterval);
-      room.loopInterval = null;
+    if (this.loopInterval) {
+      clearInterval(this.loopInterval);
+      this.loopInterval = null;
     }
 
     // Inform and close all sockets
-    for (const [ws] of room.players) {
+    for (const [ws] of this.players) {
       if (ws && ws.readyState === 1) {
         try {
           ws.send(JSON.stringify({ type: "reset" }));
@@ -63,13 +63,13 @@ export class Room {
     }
 
     // Clear player map
-    room.players.clear();
+    this.players.clear();
 
     // Remove from global rooms array
-    const idx = rooms.findIndex(r => r.id === room.id);
+    const idx = rooms.findIndex(r => r.id === this.id);
     if (idx !== -1) rooms.splice(idx, 1);
 
-    console.log(`Closed room ${room.id}`);
+    console.log(`Closed room ${this.id}`);
   }
 
 
@@ -98,20 +98,27 @@ export class Room {
     try { sock._side = side; } catch {}
   }
 
-  removePlayer(ws) {
-    this.players.delete(ws);
-    console.log(`Player removed from room ${this.id}`);
+	removePlayer(ws) {
+		this.players.delete(ws);
+		console.log(`Player removed from room ${this.id}`);
 
-    // If this room is part of a tournament, handle automatic win
-    if (this.tournamentManager && this.matchId !== undefined) {
-      // Find remaining player
-      const remainingPlayer = [...this.players.values()][0];
-      if (remainingPlayer) {
-        // Award remaining player the win
-        this.tournamentManager.recordMatchResult(this.matchId, remainingPlayer.id);
-      }
-    }
-  }
+		// If this room is part of a tournament, handle automatic win
+		if (this.tournamentManager && this.matchId !== undefined) {
+			// Find remaining player
+			const remainingPlayer = [...this.players.values()][0];
+			if (remainingPlayer) {
+				// Award remaining player the win
+				this.tournamentManager.recordMatchResult(this.matchId, remainingPlayer.id);
+			}
+		}
+
+		this.inputQueue = { left: [], right: [] };
+
+		for ([ws] of this.players) {
+			if (!ws && ws.readyState !== 1)
+				this.players.delete(ws);
+		}
+	}
 
   getPlayer(ws) {
     return this.players.get(ws);
@@ -122,13 +129,13 @@ export class Room {
   }
 }
 
-export function getOrCreateRoom(name = "default") {
+export function getOrCreateRoom(name = null) {
   // Find the latest regular room that has less than 2 player
   let room = rooms.find(r => r.type === "regular" && r.players.size < 2);
   
   // If no available, create a new one
   if (!room) {
-    room = new Room(null, "regular");
+    room = new Room(name, "regular");
     rooms.push(room);
   }
   room.name = name;

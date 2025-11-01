@@ -110,7 +110,6 @@ export const RemoteController = (root: HTMLElement) => {
     joinBtn.removeEventListener("click", onJoin);
     leaveBtn.removeEventListener("click", onHome);
     startBtn.removeEventListener("click", onStart);
-    game.soundManager.stopTheme();
     window.removeEventListener("beforeunload", onLeave);
     window.removeEventListener("unload", onLeave);
   };
