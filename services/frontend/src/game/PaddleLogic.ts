@@ -116,16 +116,16 @@ export class PaddleLogic {
 			let	ball_vv = ball.speed.vspd;
 			let	ball_damp = ball.spd_damp;
 	
-			//	Cut prediction path short
-			if (ai_level == 'EASY')
-				failsafe /= 4.5;
-	
 			//	Offset ball direciton a bit to make it less accurate on MEDIUM difficulty
-			if (ai_level == 'MEDIUM')
+			if (ai_level == 'EASY')
 			{
-				ball.speed.hspd += 0.15 - (Math.random() * 0.3);
-				ball.speed.vspd += 0.15 - (Math.random() * 0.3);
+				ball.speed.hspd += 0.25 - (Math.random() * 0.5);
+				ball.speed.vspd += 0.25 - (Math.random() * 0.5);
 			}
+	
+			//	Cut prediction path short
+			if (ai_level == 'MEDIUM')
+				failsafe /= 5;
 	
 			//	Simulate ball movement
 			if (paddle.position.x < 0)
