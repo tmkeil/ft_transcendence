@@ -13,18 +13,19 @@ up:
 	docker ps -a
 
 down:
-	@echo "Stopping and removing Services..."
+	@echo "Stopping Services..."
 	docker compose down
-# rm -rf ./services/frontend/node_modules ./packages/shared/dist
+	rm -rf ./services/frontend/node_modules ./packages/shared/dist
 
 prune: down
-	@echo "Nuking all Services..."
+	@echo "Nuking Everything..."
 	docker system prune -af --volumes
-# rm -rf ./services/backend/data/database.sqlite
+	rm -rf ./services/backend/data/database.sqlite
+	find ./services/backend/data/public/user_pfps -mindepth 1 ! -name 'default.png' -exec rm -rf {} +
 
-re: down up
+re: down build
 
-reset: prune up
+reset: prune build
 
 
 help:
@@ -32,9 +33,12 @@ help:
 	@echo "Makefile for ft_transcendence (Simple Setup)"
 	@echo "----------------------------------------------------"
 	@echo "Available commands:"
+	@echo "  make build     - Build all services"
 	@echo "  make up        - Start all services"
-	@echo "  make down      - Stop and remove all services"
-	@echo "  make re        - Remove and restart all services"
+	@echo "  make down      - Stop all services"
+	@echo "  make re        - Stop and rebuild all services"
+	@echo "  make prune     - Stop and remove all services and data"
+	@echo "  make reset     - Stop and totally reset with prune"
 	@echo "----------------------------------------------------"
 
-.PHONY: up down re help
+.PHONY: build up down re prune reset help
