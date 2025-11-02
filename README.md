@@ -16,30 +16,30 @@ This is the final project of the 42 Common Core. It is meant to put all of our s
 The basic features that Transcendence had to have are a local game od pong between two players and a round-based tournament system between multiple players. The gameplay must be faithful to that of the original 1972 game. How the tournament system works exactly is left up to us to decide, so we took some liberties there. Our website has to be secure and protected against SQL injections and malicious API calls. I focused primarily on this aspect, creating the login/register flow, 2FA system, JWT and cookie management and API protection with Authorization pre-handlers.
 
 ## Modules
-We picked 8 major modules and 4 minor modules. A minor modules is worth half a major one, thus adding up to a total of 10 module points. The requirement for 100% grade is 7, meaning we have the maximum bonus of 125%.
+We picked 9 major modules and 4 minor modules. A minor modules is worth half a major one, thus adding up to a total of 11 module points. The requirement for 100% grade is 7, meaning we have the maximum bonus of 125%.
 
 ### Major Modules:
-- Backend Framework (Fastify) - Our backend routes and endpoints use a Fastify for JavaScript.
-- Remote Authentication - There is support for the Google Authenticator as a 3rd party authentication.
-- Remote Players - The game can be played online with remote players via use of web sockets.
-- Live Chat - There is a libe chat system where players can send messages, game invites and view eachother's statistics.
-- User Dashboard and Statistics - Thete is a dynamic dashboard where users can view eachother's statistics and can send friend requests. There is also a profile picture system and a blocking system.
-- AI Opponent - An additional mode where players can play endlessly against an AI with three different difficulty settings.
-- Two-Factor Authentication and JWTs - Sessions are stored with browser cookies and verified using JSON Web Tokens. Users can activate 2FA and scan a QR to link their Google Authenticator to their profile.
-- 3D Graphics (Babylon) - The game is rendered in 3D using a graphical library called Bablylon.js, which is where our team got its name from.
-- Server-Side Pong API - In conjunction with the remote players system we calculate the game's data such as paddle positions and ball velocity on the server and broadcast to the clients via a custom API.
+- **Backend Framework (Fastify)** - Our backend routes and endpoints use a Fastify for JavaScript.
+- **Remote Authentication** - There is support for the Google Authenticator as a 3rd party authentication.
+- **Remote Players** - The game can be played online with remote players via use of web sockets.
+- **Live Chat** - There is a libe chat system where players can send messages, game invites and view eachother's statistics.
+- **User Dashboard and Statistics** - Thete is a dynamic dashboard where users can view eachother's statistics and can send friend requests. There is also a profile picture system and a blocking system.
+- **AI Opponent** - An additional mode where players can play endlessly against an AI with three different difficulty settings.
+- **Two-Factor Authentication and JWTs** - Sessions are stored with browser cookies and verified using JSON Web Tokens. Users can activate 2FA and scan a QR to link their Google Authenticator to their profile.
+- **3D Graphics (Babylon)** - The game is rendered in 3D using a graphical library called Bablylon.js, which is where our team got its name from.
+- **Server-Side Pong API** - In conjunction with the remote players system we calculate the game's data such as paddle positions and ball velocity on the server and broadcast to the clients via a custom API.
 
 ### Minor Modules:
-- Frontend Framework (Tailwind and Vite) - The fontend uses Tailwind CSS for UI design and rendering, as well as Vite for fast reload.
-- Database Implementation (sqlite) - We use a database to store user data, friend and block data and game data.
-- DevOps Monitoring System (Prometheus, Grafana and Alert Manager) - Three additional containers have been set up to gather metrics and display them. There is also an aler system linked to a custom Slack channel.
-- Multiple Browser Compatibility - Our Transcendence works on multiple browsers (though Firefox is its native one).
+- **Frontend Framework** (Tailwind and Vite) - The fontend uses Tailwind CSS for UI design and rendering, as well as Vite for fast reload.
+- **Database Implementation (sqlite)** - We use a database to store user data, friend and block data and game data.
+- **DevOps Monitoring System (Prometheus, Grafana and Alert Manager)** - Three additional containers have been set up to gather metrics and display them. There is also an aler system linked to a custom Slack channel.
+- **Multiple Browser Compatibility** - Our Transcendence works on multiple browsers (though Firefox is its native one).
 
 ## Usage
 - You can simply clone this repo to your machine:
 `git clone https://github.com/kixikCodes/ft_transcendence`
 
-- You must make a .env file in the root of the repository with these variables:
+- You **must** make a `.env` file in the root of the repository with these variables:
 ```
 JWT_SECRET=[JSON Web Token Secret Key]
 
@@ -68,4 +68,4 @@ SLACK_WEBHOOK_URL=[Slack Webhook URL for Alert Manager]
 
 **Myself** - Cybersecurity, user registration flow, authentication and authorization systems, user settings, frontend and UI design, project management, sound design and music, playtesting, documentation.
 
-Special Thanks: [SkyeCodes](https://github.com/skyecodes) for help with profile picture system implementation, playtesting and providing a server to host the project for online testing.
+_Special Thanks:_ [skyecodes](https://github.com/skyecodes) for help with profile picture system implementation, playtesting and providing a server to host the project for online testing. Also, much needed moral support.
