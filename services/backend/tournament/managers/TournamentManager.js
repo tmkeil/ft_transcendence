@@ -170,12 +170,11 @@ export class TournamentManager {
     }
   }
 
-  handlePlayerLeave(userId) {
+  handlePlayerLeave() {
     const tournament = this.getTournament();
     if (!tournament) return;
 
-    // Stop all tournament match rooms, inform clients the tournament was aborted,
-    // then close their sockets so they are effectively kicked back to the main menu.
+    // Stop any running match rooms first (stops loops / render)
     for (const match of (tournament.matches || [])) {
       if (!match || !match.room) continue;
       const room = match.room;
@@ -185,27 +184,32 @@ export class TournamentManager {
         room.loopInterval = null;
       }
 
-      for (const [ws, player] of room.players) {
-        try {
-          if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({
-              type: "tournamentAborted",
-              message: "A player left the tournament. Returning to menu."
-            }));
-            try { ws.close(); } catch {}
-          }
-        } catch (err) {
-          // ignore per-client errors
-        }
+      // clear room players list and detach room refs
+      for (const [ws] of room.players) {
         if (ws) {
-          ws._roomId = null;
-          ws._side = null;
+          try { ws._roomId = null; ws._side = null; } catch {}
         }
       }
-
       room.players.clear();
+
       const idx = rooms.findIndex(r => r.id === room.id);
       if (idx !== -1) rooms.splice(idx, 1);
+    }
+
+    // Notify all tournament-registered players (waiting or active) that the tournament was aborted
+    // and close their sockets so clients return to home.
+    for (const p of (tournament.players || [])) {
+      const ws = p.ws;
+      if (ws && ws.readyState === 1) {
+        try {
+          ws.send(JSON.stringify({
+            type: "tournamentAborted",
+            message: "A player left the tournament. Returning to menu."
+          }));
+        } catch {}
+        try { ws.close(); } catch {}
+        try { ws._roomId = null; ws._side = null; } catch {}
+      }
     }
 
     // Reset tournament state server-side
