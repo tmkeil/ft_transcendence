@@ -16,6 +16,7 @@ export class GameManager {
 	private conf!: Readonly<Derived>;
 	private settings: Settings;
 	private refresh_time: number;
+	private renderLoopActive: boolean = false;
 	public soundManager: SoundManager;
 
 	constructor(settings: Settings) {
@@ -110,12 +111,15 @@ export class GameManager {
 	}
 
 	private startGameLoop(): void {
+		if (this.renderLoopActive) return;
+		
+		this.renderLoopActive = true;
 		let		last_time = performance.now();
 		let		accumulator = 0;
 		const	timestep = 14;
 
 		this.sceneBuilder.getEngine().runRenderLoop(() => {
-			if (!this.gameStatus.running) return;
+			if (!this.gameStatus.running || !this.renderLoopActive) return;
 
 			const now = performance.now();
 			const delta = now - last_time;
@@ -129,15 +133,23 @@ export class GameManager {
 				accumulator -= timestep;
 			}
 
-			this.scene.render();
+			(this.scene as any).render();
 		});
 	}
 
 	private cleanup(): void {
 		console.log("Cleaning up game resources...");
 
+		// Stop render loop first
+		this.renderLoopActive = false;
+		
+		// Stop the engine's render loop
+		if (this.sceneBuilder.getEngine()) {
+			this.sceneBuilder.getEngine().stopRenderLoop();
+		}
+
 		//	Clean scene objects
-		if (this.scene && !this.scene.isDisposed) this.scene.dispose();
+		if (this.scene && !(this.scene as any).isDisposed) (this.scene as any).dispose();
 
 		//	CLean engine
 		if (
@@ -232,7 +244,12 @@ export class GameManager {
 	public stopGame(): void {
 		this.resetServerState();
 		this.gameLogic.resetTempStates();
-		this.gameLogic.updateScores();
-		this.scene.render();
+		// this.gameLogic.updateScores(); // Remove private method call
+		(this.scene as any).render();
+	}
+
+	// Add public cleanup method
+	public forceCleanup(): void {
+		this.cleanup();
 	}
 }

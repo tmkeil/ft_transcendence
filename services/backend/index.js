@@ -387,8 +387,11 @@ export function stopRoom(room) {
 		room.loopInterval = null;
 	}
 
-	if (room.players.size !== 0) {
-
+	// Clean up room resources
+	if (room) {
+		room.state.started = false;
+		room.inputQueue = { left: [], right: [] };
+		room.inputs = { left: 0, right: 0 };
 	}
 
 	// Remove from global rooms array (use passed roomId or room.id)
@@ -402,10 +405,21 @@ export function stopRoom(room) {
 // This function is called every 33ms to update the game state based on the current state and player input.
 // Then broadcast it to the players, so that they can render the new state
 export function loop(room) {
-	if (room.inputQueue.right.length > 0)
-		room.inputs.right = room.inputQueue.right.shift();
-	if (room.inputQueue.left.length > 0)
-		room.inputs.left = room.inputQueue.left.shift();
+	// Check if room still exists and should continue
+	if (!room || !room.state.started || !room.loopInterval) {
+		return;
+	}
+
+	// Process ALL queued inputs, not just one per loop iteration
+	// This prevents input lag when one player sends multiple inputs
+	if (room.inputQueue.right.length > 0) {
+		room.inputs.right = room.inputQueue.right[room.inputQueue.right.length - 1];
+		room.inputQueue.right = [];
+	}
+	if (room.inputQueue.left.length > 0) {
+		room.inputs.left = room.inputQueue.left[room.inputQueue.left.length - 1];
+		room.inputQueue.left = [];
+	}
 
 	let prevState = JSON.stringify(room.state);
 
@@ -434,7 +448,12 @@ export function loop(room) {
 	// Check for win condition: first to 5
 	if (room.state.scoreL >= 5 || room.state.scoreR >= 5) {
 		clearInterval(room.loopInterval);
+		room.loopInterval = null;
 		room.state.started = false;
+		
+		// Clear input queues to prevent stale inputs
+		room.inputQueue = { left: [], right: [] };
+		room.inputs = { left: 0, right: 0 };
 
 		const winnerSide = room.state.scoreL >= 5 ? "left" : "right";
 		const loserSide = winnerSide === "left" ? "right" : "left";
@@ -488,11 +507,22 @@ export function loop(room) {
 
 }
 
+// Monitor active rooms and loops every 30 seconds
+setInterval(() => {
+	rooms.forEach((room, index) => {
+		const hasLoop = !!room.loopInterval;
+		const players = room.players.size;
+		// Clean up empty rooms without loops
+		if (players === 0 && !hasLoop && !room.state.started) {
+			rooms.splice(index, 1);
+		}
+	});
+}, 30000);
+
 // Start the Fastify server on port 3000 hosting on all interfaces
 fastify.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
 	if (err) {
 		fastify.log.error(err);
 		process.exit(1);
 	}
-	fastify.log.info("Backend running on port 3000");
 });

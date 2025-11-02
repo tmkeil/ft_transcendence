@@ -55,7 +55,7 @@ export class TournamentManager {
   }
 
   cleanup() {
-    console.log(`Cleaning up tournament ${this.tournament.id}`);
+    console.log(`\n\n\nCleaning up tournament ${this.tournament.id}`);
 
     // Stop any active rooms
     for (const match of this.tournament.matches) {
@@ -136,6 +136,7 @@ export class TournamentManager {
 
 
   handleDisconnect(userId) {
+    console.log("tournament.status: ", tournament.status);
     const tournament = this.getTournament();
     if (!tournament) return;
 
@@ -156,9 +157,18 @@ export class TournamentManager {
         if (winner)
           this.recordMatchResult(match.id, winner.id);
       }
+      // for (const room of tournament.rooms) {
+      //   console.log("Checking room for disconnect:", room);
+      //   for (const [ws, player] of room.players) {
+      //     console.log("Checking player in room:", player);
+      //     if (player.id !== userId) {
+      //       room.removePlayer(ws);
+      //     }
+      //   }
+      //   room.closeRoom();
+      // }
     }
   }
-
 
   getTournament() {
     return this.tournament;
@@ -222,10 +232,18 @@ export class TournamentManager {
     match.loser = match.p1.id === winnerId ? match.p2 : match.p1;
     match.status = "completed";
 
-    // Stop the room loop
-    if (match.room.loopInterval) {
+    // Stop the room loop FIRST
+    if (match.room && match.room.loopInterval) {
       clearInterval(match.room.loopInterval);
       match.room.loopInterval = null;
+    }
+
+    // Clean up room resources
+    if (match.room) {
+      match.room.inputQueue = { left: [], right: [] };
+      
+      match.room.state.started = false;
+      match.room.inputs = { left: 0, right: 0 };
     }
 
     // Close the room so losers are disconnected

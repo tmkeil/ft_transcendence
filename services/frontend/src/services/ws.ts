@@ -31,8 +31,19 @@ class WSClient {
     : `ws://${location.host}/ws`;
 
   connect(userId: number) {
-    // Avoid duplicate connections
-    if (this.connected && this.ws?.readyState === WebSocket.OPEN) return;
+    // Close existing connection properly first
+    if (this.ws && this.ws.readyState !== WebSocket.CLOSED) {
+      this.ws.close();
+      this.ws = undefined;
+    }
+    
+    // Clear existing timeouts
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = undefined;
+    }
+    
+    this.stopHeartbeat();
 
     this.userId = userId;
     this.ws = new WebSocket(this.WS_URL);
@@ -88,10 +99,27 @@ class WSClient {
 
   close() {
     this.stopHeartbeat();
-    this.ws?.close();
+    
+    // Clear reconnect timeout
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = undefined;
+    }
+    
+    // Close WebSocket properly
+    if (this.ws && this.ws.readyState !== WebSocket.CLOSED) {
+      this.ws.close();
+    }
+    
+    this.ws = undefined;
     this.userId = undefined;
     this.connected = false;
-    clearTimeout(this.reconnectTimeout);
+    
+    // Clear all listeners
+    this.listeners.clear();
+    
+    // Clear queue
+    this.queue = [];
   }
 
   private flush() {

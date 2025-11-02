@@ -16,6 +16,7 @@ const routes: Record<string, Route> = {
 
 // Teardown function. When navigating away from a page, the returned code from the site controller is called
 let teardown: () => void = () => {};
+let isNavigating = false; // Track if we're in a programmatic navigation
 
 // If the user is authenticated (has a userId in localStorage)
 const isAuthed = async () => {
@@ -34,6 +35,7 @@ export function navigate(path: string): void {
     // When navigating away, call the previous page's teardown function
     teardown();
     teardown = () => {};
+    isNavigating = true; // Mark as programmatic navigation
     history.pushState({}, "", path);
     handleLocation();
 }
@@ -41,7 +43,13 @@ export function navigate(path: string): void {
 // After adding the data-link via navigate, the window.history.pathname is the new URL and
 // the main-page div will be updated with the new content.
 async function handleLocation(): Promise<void> {
-    teardown();
+    // Call teardown for browser navigation (back/forward), but not for programmatic navigation
+    if (!isNavigating) {
+        teardown();
+    } else {
+        isNavigating = false;
+    }
+    
     teardown = () => {};
     console.log("Handling location:", location.pathname);
     let path = location.pathname;
@@ -117,5 +125,12 @@ document.addEventListener("click", (e) => {
 
 // When navigating with the browser's back/forward buttons, the history state will be updated
 window.addEventListener("popstate", handleLocation);
-// When the DOM is fully loaded, handle the initial location which is "/" poiting on the home page
+
+// Cleanup when user closes/reloads page
+window.addEventListener("beforeunload", () => {
+    console.log("🚪 Page unload detected - calling teardown...");
+    teardown();
+});
+
+// When the DOM is fully loaded, handle the initial location which is "/" pointing on the home page
 document.addEventListener("DOMContentLoaded", handleLocation);

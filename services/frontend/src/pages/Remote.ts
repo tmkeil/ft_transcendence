@@ -84,6 +84,7 @@ export const RemoteController = (root: HTMLElement) => {
     try {
       ws.send({ type: "leave", userId });
       tournamentStatus.textContent = "Left room.";
+      ws.close();
     } catch {
       ws.close();
     }
@@ -119,7 +120,11 @@ export const RemoteController = (root: HTMLElement) => {
     ws.off("reset", onReset);
     ws.off("start", onGameStart);
     
-    ws.close();
+    // Force cleanup GameManager BEFORE closing WebSocket
+    game.forceCleanup();
+    
+    // ws.close();
+    
     joinBtn.removeEventListener("click", onJoin);
     leaveBtn.removeEventListener("click", onHome);
     startBtn.removeEventListener("click", onStart);

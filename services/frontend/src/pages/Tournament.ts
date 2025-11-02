@@ -214,7 +214,11 @@ export const TournamentController = async (root: HTMLElement) => {
     ws.off("tournamentEliminated", onEliminated);
     ws.off("tournamentComplete", onComplete);
     ws.off("joinedTournament", onJoinTournament);
-    ws.close();
+
+    // Force cleanup GameManager BEFORE closing WebSocket
+    game.forceCleanup();
+
+    // ws.close();
 
     // remove button listeners
     startBtn?.removeEventListener("click", onStart);
@@ -225,6 +229,7 @@ export const TournamentController = async (root: HTMLElement) => {
   function onLeave() {
     try {
       ws.send({ type: "leave", userId });
+      ws.close();
     } catch {
       ws.close();
     }
