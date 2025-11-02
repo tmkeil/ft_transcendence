@@ -17,6 +17,8 @@ import path, { resolve } from "node:path";
 import metricsPlugin from "fastify-metrics";
 
 import fastifyRoutes from "./fastifyRoutes.js";
+// const { promisify } = require("util");
+import { promisify } from "node:util";
 
 // import * as Shared from "@app/shared";
 // or import specific identifiers, e.g.:
@@ -59,7 +61,7 @@ await fastify.register(metricsPlugin, {
 initDb(db);
 
 // Register routes from fastifyRoutes.js
-await fastify.register(fastifyRoutes, { db });
+await fastify.register(fastifyRoutes, { db, promisify });
 
 // WebSocket map of clientIds to websockets
 const clients = new Map();

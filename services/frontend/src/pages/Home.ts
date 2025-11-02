@@ -1035,11 +1035,13 @@ export const HomeController = async (root: HTMLElement) => {
 					const res = await fetch(`/api/users/${myUserId}`, {
 						method: "DELETE",
 						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ password }),
+						body: JSON.stringify({ password: password }),
 						credentials: "include"
 					});
-					if (res.ok)
+					if (res.ok) {
+						console.log("Account deleted, redirecting");
 						navigate("/login");
+					}
 					deletePasswordInput.value = "";
 					deletePasswordInput.placeholder = "Invalid password"
 				} catch (err) {

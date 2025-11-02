@@ -8,6 +8,7 @@ import { checkAuthentication, checkAuthorization } from './utils.js';
 
 export default async function (fastify, options) {
     const db = options.db;
+	const prom = options.promisify;
 
 	// USERS API ENDPOINTS //
 
@@ -318,11 +319,11 @@ export default async function (fastify, options) {
 				if (err)
 					return reply.code(500).send({ error: err.message });
 				if (!user)
-					return reply.code(400).send({ error: "Invalid credentials" });
+					return reply.code(403).send({ error: "Invalid credentials" });
 				// Authenticate password
 				const isValid = bcrypt.compareSync(password, user.password_hash);
 				if (!isValid)
-					return reply.code(400).send({ error: "Invalid credentials" });
+					return reply.code(403).send({ error: "Invalid credentials" });
 
 				// Issue temporary JWT
 				const tempToken = fastify.jwt.sign(
@@ -473,31 +474,44 @@ export default async function (fastify, options) {
 		reply.send({ ok: true });
 	});
 
-	fastify.delete("/api/users/:id", { preHandler: checkAuthorization }, (request, reply) => {
-		const { password } = request.body;
-        const userId = parseInt(request.params.id);
+	// const { promisify } = require("util");
 
-		db.get("SELECT * FROM users WHERE id = ?",
-			[userId],
-			(err, user) => {
-				if (err)
-					return reply.code(500).send({ error: err.message });
-				if (!user)
-					return reply.code(400).send({ error: "Invalid credentials" });
-				const isValid = bcrypt.compareSync(password, user.password_hash);
-				if (!isValid)
-					return reply.code(400).send({ error: "Invalid credentials" });
-			}
-		);
+	// Promisify db methods
+	const dbGet = prom(db.get.bind(db));
+	const dbRun = prom(db.run.bind(db));
 
-		db.run("DELETE FROM users WHERE id = ?",
-			[userId],
-			function (err) {
-				if (err) return reply.code(500).send({ error: err.message });
-				reply.clearCookie("auth", { path: "/" });
-				reply.send({ success: true });
+	fastify.delete("/api/users/:id", { preHandler: checkAuthorization }, async (request, reply) => {
+		try {
+			const { password } = request.body || {};
+			const userId = parseInt(request.params.id);
+
+			console.log("Wants to delete with pass:", password);
+
+			if (!password || typeof password !== "string") {
+				return reply.code(400).send({ error: "Password is required" });
 			}
-		);
+
+			const user = await dbGet("SELECT * FROM users WHERE id = ?", [userId]);
+			if (!user) {
+				return reply.code(403).send({ error: "Invalid credentials" });
+			}
+
+			const isValid = await bcrypt.compare(password, user.password_hash);
+			if (!isValid) {
+				console.log("\n\nWrong creds.");
+				return reply.code(403).send({ error: "Invalid credentials" });
+			}
+
+			await dbRun("DELETE FROM users WHERE id = ?", [userId]);
+
+			reply.clearCookie("auth", { path: "/" });
+			console.log("User deleted successfully.");
+			return reply.send({ success: true });
+
+		} catch (err) {
+			console.error("Error deleting user:", err);
+			return reply.code(500).send({ error: err.message });
+		}
 	});
 
 	fastify.post("/api/users/:id/change-pfp", { preHandler: checkAuthorization }, async (request, reply) => {
