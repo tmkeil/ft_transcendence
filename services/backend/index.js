@@ -276,25 +276,29 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 			ws.send(JSON.stringify({ type: "join", roomName: room.name, roomId: room.id, side: ws._side, gameConfig: room.config, state: room.state }));
 
 		} else if (type === "leave") {
-			// console.log(`player id: ${userId} wants to leave the channel: ${roomId}`);
 			const index = rooms.findIndex(room => room.id === ws._roomId);
-			const room = rooms[index];
-			ws._roomId = null;
-			if (!room || !room.players.has(ws)) {
-				for (const t of Object.values(tournaments)) {
-					if (t.hasPlayer(userId)) {
-						t.handleDisconnect(userId);
-					}
-				}
-				return;
-			}
-			room.removePlayer(ws);
-			try { ws.send(JSON.stringify({ type: "tournamentEliminated" })); ws.close(); } catch { }
-			if (room.tournamentManager && userId) {
-				room.tournamentManager.handleDisconnect(userId);
-			}
-			room.closeRoom();
-			if (room.players.size === 0) rooms.splice(index, 1);
+            const room = rooms[index];
+            ws._roomId = null;
+            if (!room || !room.players.has(ws)) {
+                for (const t of Object.values(tournaments)) {
+                    if (t.hasPlayer(userId)) {
+                        // explicit "leave" should abort the tournament, not run disconnect logic
+                        t.handlePlayerLeave(userId);
+                    }
+                }
+                return;
+            }
+            room.removePlayer(ws);
+
+            if (room.tournamentManager && userId) {
+                try {
+                    room.tournamentManager.handlePlayerLeave(userId);
+                } catch (err) {
+                    console.warn("Error handling tournament leave:", err?.message || err);
+                }
+            }
+            room.closeRoom();
+            if (room.players.size === 0) rooms.splice(index, 1);
 		} else if (type === "ready") {
 			const { userId } = parsed;
 			const index = rooms.findIndex(room => room.id === ws._roomId);

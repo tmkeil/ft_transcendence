@@ -136,9 +136,9 @@ export class TournamentManager {
 
 
   handleDisconnect(userId) {
-    console.log("tournament.status: ", tournament.status);
     const tournament = this.getTournament();
     if (!tournament) return;
+	console.log("tournament.status: ", tournament.status);
 
     // CASE 1: Tournament not started yet
     if (tournament.status === "pending") {
@@ -168,6 +168,52 @@ export class TournamentManager {
       //   room.closeRoom();
       // }
     }
+  }
+
+  handlePlayerLeave(userId) {
+    const tournament = this.getTournament();
+    if (!tournament) return;
+
+    // Stop all tournament match rooms, inform clients the tournament was aborted,
+    // then close their sockets so they are effectively kicked back to the main menu.
+    for (const match of (tournament.matches || [])) {
+      if (!match || !match.room) continue;
+      const room = match.room;
+
+      if (room.loopInterval) {
+        clearInterval(room.loopInterval);
+        room.loopInterval = null;
+      }
+
+      for (const [ws, player] of room.players) {
+        try {
+          if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({
+              type: "tournamentAborted",
+              message: "A player left the tournament. Returning to menu."
+            }));
+            try { ws.close(); } catch {}
+          }
+        } catch (err) {
+          // ignore per-client errors
+        }
+        if (ws) {
+          ws._roomId = null;
+          ws._side = null;
+        }
+      }
+
+      room.players.clear();
+      const idx = rooms.findIndex(r => r.id === room.id);
+      if (idx !== -1) rooms.splice(idx, 1);
+    }
+
+    // Reset tournament state server-side
+    tournament.players = [];
+    tournament.waitingArea = [];
+    tournament.matches = [];
+    tournament.round = 0;
+    tournament.status = "pending";
   }
 
   getTournament() {

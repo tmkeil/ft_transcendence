@@ -165,6 +165,11 @@ export const TournamentController = async (root: HTMLElement) => {
     navigate("/");
   };
 
+  const onAborted = (m: { type: "tournamentAborted"; message?: string }) => {
+    alert(m?.message || "Tournament aborted: a player left.");
+    navigate("/");
+  };
+
   const onJoinTournament = (m: { type: "joinedTournament"; t_id: string }) => {
     insertTable(m.t_id);
   };
@@ -178,6 +183,7 @@ export const TournamentController = async (root: HTMLElement) => {
   ws.on("state", onState);
   ws.on("tournamentEliminated", onEliminated);
   ws.on("tournamentComplete", onComplete);
+  ws.on("tournamentAborted", onAborted);
   ws.on("joinedTournament", onJoinTournament);
 
   // --- Button handlers ---
@@ -203,6 +209,15 @@ export const TournamentController = async (root: HTMLElement) => {
   joinBtn?.addEventListener("click", onJoinBtn);
   leaveBtn?.addEventListener("click", onLeaveBtn);
 
+  function onLeave() {
+    try {
+      ws.send({ type: "leave", userId });
+      ws.close();
+    } catch {
+      ws.close();
+    }
+  }
+
   // --- Cleanup ---
   return () => {
     onLeave();
@@ -213,6 +228,7 @@ export const TournamentController = async (root: HTMLElement) => {
     ws.off("state", onState);
     ws.off("tournamentEliminated", onEliminated);
     ws.off("tournamentComplete", onComplete);
+	ws.off("tournamentAborted", onAborted);
     ws.off("joinedTournament", onJoinTournament);
 
     // Force cleanup GameManager BEFORE closing WebSocket
@@ -225,13 +241,4 @@ export const TournamentController = async (root: HTMLElement) => {
     joinBtn?.removeEventListener("click", onJoinBtn);
     leaveBtn?.removeEventListener("click", onLeaveBtn);
   };
-
-  function onLeave() {
-    try {
-      ws.send({ type: "leave", userId });
-      ws.close();
-    } catch {
-      ws.close();
-    }
-  }
 };
