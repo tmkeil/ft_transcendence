@@ -1,4 +1,3 @@
-// 
 type Route = { template: string; auth?: boolean; };
 
 // Map routes to HTML files
@@ -15,18 +14,18 @@ const routes: Record<string, Route> = {
 };
 
 // Teardown function. When navigating away from a page, the returned code from the site controller is called
-let teardown: () => void = () => {};
+let teardown: () => void = () => { };
 let isNavigating = false; // Track if we're in a programmatic navigation
 
 // If the user is authenticated (has a userId in localStorage)
 const isAuthed = async () => {
-  console.log("Checking authentication status...");
-  const res = await fetch(`https://${location.host}/api/me`, {
-    method: "GET",
-    credentials: "include",
-  });
-  console.log("Authentication status response:", res);
-  return res.ok;
+    console.log("Checking authentication status...");
+    const res = await fetch(`https://${location.host}/api/me`, {
+        method: "GET",
+        credentials: "include",
+    });
+    console.log("Authentication status response:", res);
+    return res.ok;
 };
 
 // This updates the browser's history and loads the new page content.
@@ -34,7 +33,7 @@ export function navigate(path: string): void {
     console.log(`Navigating to ${path}`);
     // When navigating away, call the previous page's teardown function
     teardown();
-    teardown = () => {};
+    teardown = () => { };
     isNavigating = true; // Mark as programmatic navigation
     history.pushState({}, "", path);
     handleLocation();
@@ -49,8 +48,8 @@ async function handleLocation(): Promise<void> {
     } else {
         isNavigating = false;
     }
-    
-    teardown = () => {};
+
+    teardown = () => { };
     console.log("Handling location:", location.pathname);
     let path = location.pathname;
     let route = routes[path] || routes["/404"];
@@ -85,7 +84,7 @@ async function handleLocation(): Promise<void> {
             const { mountLogin } = await import("/src/pages/Login.js");
             // Call the mountLogin to set up event listeners and manage the login page
             // And execute the returned code, when navigating away from the login page
-            teardown = mountLogin(root) || (() => {});
+            teardown = mountLogin(root) || (() => { });
         } else if (path === "/dashboard") {
             const { mountDashboard } = await import("/src/pages/Dashboard.js");
             teardown = await mountDashboard(root);

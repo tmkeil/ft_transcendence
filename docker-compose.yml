@@ -28,14 +28,15 @@ services:
       - ./monitoring/alertmanager/docker-entrypoint.sh:/docker-entrypoint.sh:ro
     environment:
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
-    entrypoint: ["/docker-entrypoint.sh"]
+    entrypoint: [ "/docker-entrypoint.sh" ]
     command:
       - '--log.level=info'
     networks:
       - transcendence-net
     restart: unless-stopped
 
-  grafana:  # Grafana for visualizing Prometheus data
+  grafana:
+    # Grafana for visualizing Prometheus data
     image: grafana/grafana:latest
     container_name: grafana
     ports:
@@ -72,7 +73,8 @@ services:
     networks:
       - transcendence-net
 
-  nginx-exporter:  # Prometheus exporter for Nginx
+  nginx-exporter:
+    # Prometheus exporter for Nginx
     image: nginx/nginx-prometheus-exporter:latest
     container_name: nginx-exporter
     command:
@@ -119,6 +121,7 @@ volumes:
   frontend_node_modules:
   backend_data:
   grafana_data:
+
 
 secrets:
   grafana_admin_password:

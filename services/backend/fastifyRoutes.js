@@ -8,9 +8,9 @@ import { checkAuthentication, checkAuthorization } from './utils.js';
 
 export default async function (fastify, options) {
     const db = options.db;
-	const prom = options.promisify;
+    const prom = options.promisify;
 
-	// USERS API ENDPOINTS //
+    // USERS API ENDPOINTS //
 
     // Get all users (without password_hash and totp_secret) from the db
     fastify.get("/api/users", { preHandler: checkAuthentication }, async (request, reply) => {
@@ -135,22 +135,22 @@ export default async function (fastify, options) {
         // And if userId is blocked by friendId or the other way round
         try {
             const existingRequests = await fetchAll(db, `SELECT * FROM friend_requests WHERE
-      (sender_id = ? AND receiver_id = ?) OR
-      (sender_id = ? AND receiver_id = ?)`,
+    (sender_id = ? AND receiver_id = ?) OR
+    (sender_id = ? AND receiver_id = ?)`,
                 [userId, friendId, friendId, userId]);
             if (existingRequests.length > 0) {
                 return reply.code(400).send({ error: "There is already a pending friend request between these users" });
             }
             const existingFriends = await fetchAll(db, `SELECT * FROM friends WHERE
-      (user_id = ? AND friend_id = ?) OR
-      (user_id = ? AND friend_id = ?)`,
+    (user_id = ? AND friend_id = ?) OR
+    (user_id = ? AND friend_id = ?)`,
                 [userId, friendId, friendId, userId]);
             if (existingFriends.length > 0) {
                 return reply.code(400).send({ error: "These users are already friends" });
             }
             const blocks = await fetchAll(db, `SELECT * FROM blocks WHERE
-      (user_id = ? AND blocked_user_id = ?) OR
-      (user_id = ? AND blocked_user_id = ?)`,
+    (user_id = ? AND blocked_user_id = ?) OR
+    (user_id = ? AND blocked_user_id = ?)`,
                 [userId, friendId, friendId, userId]);
             if (blocks.length > 0) {
                 return reply.code(400).send({ error: "Cannot send friend request because one user has blocked the other" });
@@ -280,241 +280,239 @@ export default async function (fastify, options) {
         });
     });
 
-	// AUTH API ENDPOINTS //
+    // AUTH API ENDPOINTS //
 
-	fastify.post("/api/register", (request, reply) => {
-		const { username, email, password } = request.body;
+    fastify.post("/api/register", (request, reply) => {
+        const { username, email, password } = request.body;
 
-		if (!username || !email || !password)
-			return reply.code(400).send({ error: "Missing fields" });
+        if (!username || !email || !password)
+            return reply.code(400).send({ error: "Missing fields" });
 
-		const salt = bcrypt.genSaltSync(15); // Salt Password
-		const hash = bcrypt.hashSync(password, salt); // Hash salted Password
-		const secret = authenticator.generateSecret(); // Create unique key for authenticator app (2FA)
-		db.run("INSERT INTO users (username, email, password_hash, totp_secret) VALUES (?, ?, ?, ?)",
-			[username, email, hash, secret],
-			function (err) {
-				if (err) {
-					if (err.message.includes("UNIQUE")) {
-						return reply
-							.code(400)
-							.send({ error: "Username or email already taken" });
-					}
-					return reply.code(500).send({ error: err.message });
-				}
-				reply.send({ id: this.lastID, username, email });
-			}
-		);
-	});
+        const salt = bcrypt.genSaltSync(15); // Salt Password
+        const hash = bcrypt.hashSync(password, salt); // Hash salted Password
+        const secret = authenticator.generateSecret(); // Create unique key for authenticator app (2FA)
+        db.run("INSERT INTO users (username, email, password_hash, totp_secret) VALUES (?, ?, ?, ?)",
+            [username, email, hash, secret],
+            function (err) {
+                if (err) {
+                    if (err.message.includes("UNIQUE")) {
+                        return reply
+                            .code(400)
+                            .send({ error: "Username or email already taken" });
+                    }
+                    return reply.code(500).send({ error: err.message });
+                }
+                reply.send({ id: this.lastID, username, email });
+            }
+        );
+    });
 
-	fastify.post("/api/login", (request, reply) => {
-		const { username, password } = request.body;
+    fastify.post("/api/login", (request, reply) => {
+        const { username, password } = request.body;
 
-		if (!username || !password)
-			return reply.code(400).send({ error: "Missing fields" });
+        if (!username || !password)
+            return reply.code(400).send({ error: "Missing fields" });
 
-		db.get("SELECT * FROM users WHERE username = ?",
-			[username],
-			(err, user) => {
-				if (err)
-					return reply.code(500).send({ error: err.message });
-				if (!user)
-					return reply.code(403).send({ error: "Invalid credentials" });
-				// Authenticate password
-				const isValid = bcrypt.compareSync(password, user.password_hash);
-				if (!isValid)
-					return reply.code(403).send({ error: "Invalid credentials" });
+        db.get("SELECT * FROM users WHERE username = ?",
+            [username],
+            (err, user) => {
+                if (err)
+                    return reply.code(500).send({ error: err.message });
+                if (!user)
+                    return reply.code(403).send({ error: "Invalid credentials" });
+                // Authenticate password
+                const isValid = bcrypt.compareSync(password, user.password_hash);
+                if (!isValid)
+                    return reply.code(403).send({ error: "Invalid credentials" });
 
-				// Issue temporary JWT
-				const tempToken = fastify.jwt.sign(
-					{ sub: user.id, stage: "mfa" },
-					{ expiresIn: "5m" }
-				);
-				if (user.mfa_enabled) // 2FA enabled, just pass tempToken
-					reply.send({ mfa_required: true, tempToken });
-				else { // 2FA disabled, issue full access token in cookies (lifetime of 7 days)
-					const accessToken = fastify.jwt.sign(
-						{ sub: user.id, username: user.username },
-						{ expiresIn: "7d" }
-					);
-					reply.setCookie("auth", accessToken, {
-						httpOnly: true,
-						sameSite: "lax",
-						secure: true,
-						path: "/",
-						maxAge: 7 * 24 * 60 * 60,
-					});
-					reply.send({
+                // Issue temporary JWT
+                const tempToken = fastify.jwt.sign(
+                    { sub: user.id, stage: "mfa" },
+                    { expiresIn: "5m" }
+                );
+                if (user.mfa_enabled) // 2FA enabled, just pass tempToken
+                    reply.send({ mfa_required: true, tempToken });
+                else { // 2FA disabled, issue full access token in cookies (lifetime of 7 days)
+                    const accessToken = fastify.jwt.sign(
+                        { sub: user.id, username: user.username },
+                        { expiresIn: "7d" }
+                    );
+                    reply.setCookie("auth", accessToken, {
+                        httpOnly: true,
+                        sameSite: "lax",
+                        secure: true,
+                        path: "/",
+                        maxAge: 7 * 24 * 60 * 60,
+                    });
+                    reply.send({
                         mfa_required: false,
                         user: {
                             id: user.id,
                             username: user.username,
                             email: user.email
-                        } 
+                        }
                     });
-				}
-			}
-		);
-	});
+                }
+            }
+        );
+    });
 
-	// Verify 2FA code and issue proper JWT
-	fastify.post("/api/verify-2fa", (request, reply) => {
-		const { code, tempToken } = request.body;
-		if (!code || !tempToken) {
-			return reply.code(400).send({ error: "Missing fields" });
-		}
-		console.log("Temp token:", tempToken);
-		console.log("Code:", code);
+    // Verify 2FA code and issue proper JWT
+    fastify.post("/api/verify-2fa", (request, reply) => {
+        const { code, tempToken } = request.body;
+        if (!code || !tempToken) {
+            return reply.code(400).send({ error: "Missing fields" });
+        }
+        console.log("Temp token:", tempToken);
+        console.log("Code:", code);
 
-		let payload;
-		try {
-			payload = fastify.jwt.verify(tempToken);
-		} catch (e) {
-			return reply.code(401).send({ error: "Invalid or expired token" });
-		}
-		db.get("SELECT * FROM users WHERE id = ?",
-			[payload.sub],
-			(err, user) => {
-				if (err)
-					return reply.code(500).send({ error: err.message });
-				if (!user)
-					return reply.code(400).send({ error: "User not found" });
+        let payload;
+        try {
+            payload = fastify.jwt.verify(tempToken);
+        } catch (e) {
+            return reply.code(401).send({ error: "Invalid or expired token" });
+        }
+        db.get("SELECT * FROM users WHERE id = ?",
+            [payload.sub],
+            (err, user) => {
+                if (err)
+                    return reply.code(500).send({ error: err.message });
+                if (!user)
+                    return reply.code(400).send({ error: "User not found" });
 
-				// Compare input code with currently generated code by Autheticator App.
-				// If the user has disabled 2FA, accept the code "000000" as a bypass
-				console.log("Verifying 2FA code...");
-				if (!authenticator.check(code, user.totp_secret) && code !== "000000") {
-					console.log("Invalid 2FA code");
-					return reply.code(400).send({ error: "Invalid or expired 2FA code" });
-				}
+                // Compare input code with currently generated code by Autheticator App.
+                // If the user has disabled 2FA, accept the code "000000" as a bypass
+                console.log("Verifying 2FA code...");
+                if (!authenticator.check(code, user.totp_secret) && code !== "000000") {
+                    console.log("Invalid 2FA code");
+                    return reply.code(400).send({ error: "Invalid or expired 2FA code" });
+                }
 
-				console.log("2FA code valid");
-				// Issue proper JWT and create session cookie (HttpOnly)
-				const accessToken = fastify.jwt.sign(
-					{ sub: user.id, username: user.username },
-					{ expiresIn: "15m" }
-				);
-				reply.setCookie("auth", accessToken, {
-					httpOnly: true,
-					sameSite: "lax",
-					secure: true,
-					path: "/",
-					maxAge: 15 * 60,
-				});
+                console.log("2FA code valid");
+                // Issue proper JWT and create session cookie (HttpOnly)
+                const accessToken = fastify.jwt.sign(
+                    { sub: user.id, username: user.username },
+                    { expiresIn: "15m" }
+                );
+                reply.setCookie("auth", accessToken, {
+                    httpOnly: true,
+                    sameSite: "lax",
+                    secure: true,
+                    path: "/",
+                    maxAge: 15 * 60,
+                });
 
-				reply.send({ user: { id: user.id, username: user.username, email: user.email } });
-			}
-		);
-	});
+                reply.send({ user: { id: user.id, username: user.username, email: user.email } });
+            }
+        );
+    });
 
-	fastify.get("/api/users/:id/2fa-setup", { preHandler: checkAuthorization }, (request, reply) => {
-		const userId = parseInt(request.params.id);
-		db.get("SELECT * FROM users WHERE id = ?",
-			[userId],
-			async (err, user) => {
-				if (err)
-					return reply.code(500).send({ error: err.message });
-				if (!user)
-					return reply.code(400).send({ error: "User not found" });
-
-				// If mfa_enabled is 0, set it to 1
-				if (user.mfa_enabled === 0) {
-					db.run("UPDATE users SET mfa_enabled = 1 WHERE id = ?", [userId]);
-				}
-
-				const otpauth = authenticator.keyuri(user.username, "Trancsendence", user.totp_secret);
-				const qr = await qrcode.toDataURL(otpauth);
-				reply.send({ qr });
-			}
-		);
-	});
-
-	fastify.post("/api/users/:id/disable-2fa", { preHandler: checkAuthorization }, async (request, reply) => {
-		const { code } = request.body;
+    fastify.get("/api/users/:id/2fa-setup", { preHandler: checkAuthorization }, (request, reply) => {
         const userId = parseInt(request.params.id);
-		if (!code)
-			return reply.code(400).send({ error: "Missing fields" });
+        db.get("SELECT * FROM users WHERE id = ?",
+            [userId],
+            async (err, user) => {
+                if (err)
+                    return reply.code(500).send({ error: err.message });
+                if (!user)
+                    return reply.code(400).send({ error: "User not found" });
 
-		db.get("SELECT * FROM users WHERE id = ?", [userId], (err, user) => {
-			if (err) return reply.code(500).send({ error: err.message });
-			if (!user) return reply.code(400).send({ error: "User not found" });
+                // If mfa_enabled is 0, set it to 1
+                if (user.mfa_enabled === 0) {
+                    db.run("UPDATE users SET mfa_enabled = 1 WHERE id = ?", [userId]);
+                }
 
-			if (!user.mfa_enabled)
-				return reply.code(400).send({ error: "2FA not enabled" });
+                const otpauth = authenticator.keyuri(user.username, "Trancsendence", user.totp_secret);
+                const qr = await qrcode.toDataURL(otpauth);
+                reply.send({ qr });
+            }
+        );
+    });
 
-			if (!authenticator.check(code, user.totp_secret))
-				return reply.code(400).send({ error: "Invalid 2FA code" });
+    fastify.post("/api/users/:id/disable-2fa", { preHandler: checkAuthorization }, async (request, reply) => {
+        const { code } = request.body;
+        const userId = parseInt(request.params.id);
+        if (!code)
+            return reply.code(400).send({ error: "Missing fields" });
 
-			db.run("UPDATE users SET mfa_enabled = 0 WHERE id = ?", [userId], function (err) {
-				if (err) return reply.code(500).send({ error: err.message });
-				reply.send({ success: true });
-			});
-		});
-	});
+        db.get("SELECT * FROM users WHERE id = ?", [userId], (err, user) => {
+            if (err) return reply.code(500).send({ error: err.message });
+            if (!user) return reply.code(400).send({ error: "User not found" });
 
-	fastify.get("/api/me", (request, reply) => {
-		console.log("Received /api/me request");
-		try {
-			const token = request.cookies?.auth;
-			console.log("Token from cookies:", token);
-			if (!token) throw new Error("No token");
-			// Verify and decode the token
-			const payload = fastify.jwt.verify(token);
-			console.log("Token payload:", payload);
-			reply.send({ id: payload.sub });
-			console.log("User authenticated:", payload.username);
-		} catch {
-			console.log("User not authenticated");
-			reply.code(401).send({ error: "Not Authenticated" });
-		}
-	});
+            if (!user.mfa_enabled)
+                return reply.code(400).send({ error: "2FA not enabled" });
 
-	fastify.post("/api/logout", { preHandler: checkAuthentication }, (request, reply) => {
-		reply.clearCookie("auth", { path: "/" });
-		reply.send({ ok: true });
-	});
+            if (!authenticator.check(code, user.totp_secret))
+                return reply.code(400).send({ error: "Invalid 2FA code" });
 
-	// const { promisify } = require("util");
+            db.run("UPDATE users SET mfa_enabled = 0 WHERE id = ?", [userId], function (err) {
+                if (err) return reply.code(500).send({ error: err.message });
+                reply.send({ success: true });
+            });
+        });
+    });
 
-	// Promisify db methods
-	const dbGet = prom(db.get.bind(db));
-	const dbRun = prom(db.run.bind(db));
+    fastify.get("/api/me", (request, reply) => {
+        console.log("Received /api/me request");
+        try {
+            const token = request.cookies?.auth;
+            console.log("Token from cookies:", token);
+            if (!token) throw new Error("No token");
+            // Verify and decode the token
+            const payload = fastify.jwt.verify(token);
+            console.log("Token payload:", payload);
+            reply.send({ id: payload.sub });
+            console.log("User authenticated:", payload.username);
+        } catch {
+            console.log("User not authenticated");
+            reply.code(401).send({ error: "Not Authenticated" });
+        }
+    });
 
-	fastify.delete("/api/users/:id", { preHandler: checkAuthorization }, async (request, reply) => {
-		try {
-			const { password } = request.body || {};
-			const userId = parseInt(request.params.id);
+    fastify.post("/api/logout", { preHandler: checkAuthentication }, (request, reply) => {
+        reply.clearCookie("auth", { path: "/" });
+        reply.send({ ok: true });
+    });
 
-			console.log("Wants to delete with pass:", password);
+    // Promisify db methods for asynchronous deletion operations
+    const dbGet = prom(db.get.bind(db));
+    const dbRun = prom(db.run.bind(db));
+    fastify.delete("/api/users/:id", { preHandler: checkAuthorization }, async (request, reply) => {
+        try {
+            const { password } = request.body || {};
+            const userId = parseInt(request.params.id);
 
-			if (!password || typeof password !== "string") {
-				return reply.code(400).send({ error: "Password is required" });
-			}
+            // Check user credentials before deletion
+            if (!password || typeof password !== "string") {
+                return reply.code(400).send({ error: "Password is required" });
+            }
+            const user = await dbGet("SELECT * FROM users WHERE id = ?", [userId]);
+            if (!user) {
+                return reply.code(403).send({ error: "Invalid credentials" });
+            }
+            const isValid = await bcrypt.compare(password, user.password_hash);
+            if (!isValid) {
+                console.log("\n\nWrong creds.");
+                return reply.code(403).send({ error: "Invalid credentials" });
+            }
+            // Proceed with deletion
+            await dbRun("DELETE FROM users WHERE id = ?", [userId]); // Remove user from database
+            // Remove avatar from user_pfps
+            try {
+                await fs.promises.rm(`data/public/user_pfps/${userId}`, { force: true });
+            } catch (rmErr) {
+                console.warn("Failed to remove avatar file:", rmErr?.message || rmErr);
+            }
+            reply.clearCookie("auth", { path: "/" }); // Destroy cookie with auth token
+            console.log("User deleted successfully.");
+            return reply.send({ success: true });
+        } catch (err) {
+            console.error("Error deleting user:", err);
+            return reply.code(500).send({ error: err.message });
+        }
+    });
 
-			const user = await dbGet("SELECT * FROM users WHERE id = ?", [userId]);
-			if (!user) {
-				return reply.code(403).send({ error: "Invalid credentials" });
-			}
-
-			const isValid = await bcrypt.compare(password, user.password_hash);
-			if (!isValid) {
-				console.log("\n\nWrong creds.");
-				return reply.code(403).send({ error: "Invalid credentials" });
-			}
-
-			await dbRun("DELETE FROM users WHERE id = ?", [userId]);
-
-			reply.clearCookie("auth", { path: "/" });
-			console.log("User deleted successfully.");
-			return reply.send({ success: true });
-
-		} catch (err) {
-			console.error("Error deleting user:", err);
-			return reply.code(500).send({ error: err.message });
-		}
-	});
-
-	fastify.post("/api/users/:id/change-pfp", { preHandler: checkAuthorization }, async (request, reply) => {
+    fastify.post("/api/users/:id/change-pfp", { preHandler: checkAuthorization }, async (request, reply) => {
         const options = { limits: { fileSize: 10_000_000 } };
         const data = await request.file(options);
         const userId = parseInt(request.params.id);
@@ -525,11 +523,11 @@ export default async function (fastify, options) {
         } else {
             reply.code(400).send({ error: "Wrong file format" });
         }
-	});
+    });
 
-	fastify.get("/api/users/:id/pfp", { preHandler: checkAuthentication }, (request, reply) => {
-		const userId = parseInt(request.params.id);
+    fastify.get("/api/users/:id/pfp", { preHandler: checkAuthentication }, (request, reply) => {
+        const userId = parseInt(request.params.id);
         console.log("fecthing pfp");
-		reply.sendFile(`user_pfps/${userId}`);
-	});
+        reply.sendFile(`user_pfps/${userId}`);
+    });
 };

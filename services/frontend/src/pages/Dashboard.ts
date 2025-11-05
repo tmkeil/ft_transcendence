@@ -5,244 +5,244 @@ import { Derived } from "@app/shared";
 import { Settings } from "../game/GameSettings.js";
 
 type UsersData = {
-  id: number;
-  username: string;
-  wins: number;
-  losses: number;
-  level: number;
-  created_at: string;
-  email?: string;
-  status: "ok" | "friend" | "blocked" | "blocked_me" | "request_sent";
+    id: number;
+    username: string;
+    wins: number;
+    losses: number;
+    level: number;
+    created_at: string;
+    email?: string;
+    status: "ok" | "friend" | "blocked" | "blocked_me" | "request_sent";
 };
 
 type FriendsType = {
-  id: number;
-  user_id: number;
-  friend_id: number;
-  created_at: string;
+    id: number;
+    user_id: number;
+    friend_id: number;
+    created_at: string;
 };
 
 type BlocksType = {
-  id: number;
-  user_id: number;
-  blocked_user_id: number;
-  created_at: string;
+    id: number;
+    user_id: number;
+    blocked_user_id: number;
+    created_at: string;
 };
 
 const getUsers = async () => {
-  const response = await fetch("/api/users");
-  if (!response.ok) {
-    console.error("Failed to fetch users:", response.statusText);
-    return [];
-  }
-
-  // Get my userId from the backend
-  const myUserRes = await fetch(`https://${location.host}/api/me`, { method: "GET", credentials: "include" });
-  if (!myUserRes.ok) {
-    console.error("Failed to fetch my user ID:", myUserRes.statusText);
-    return [];
-  }
-
-  const users: UsersData[] = await response.json();
-  const myUserId = (await myUserRes.json()).id;
-  if (myUserId === -1) {
-    console.error("Failed to fetch my user ID");
-    return [];
-  }
-
-  // Get myUser from the users list
-  const myUser = users.find(u => u.id === myUserId);
-
-  if (!myUser) {
-    console.error("Failed to find my user in the users list");
-    return [];
-  }
-
-  // Users that are my friends
-  const friendsRes = await fetch(`/api/users/${myUserId}/friends`);
-  if (!friendsRes.ok) {
-    console.error("Failed to fetch friends:", friendsRes.statusText);
-    return [];
-  }
-  const friendIds = (await friendsRes.json()).map((f: FriendsType) => f.friend_id);
-
-  // Users that I have blocked
-  const blocksRes = await fetch(`/api/users/${myUserId}/blocks`);
-  if (!blocksRes.ok) {
-    console.error("Failed to fetch blocks:", blocksRes.statusText);
-    return [];
-  }
-  const blockIds = (await blocksRes.json()).map((b: BlocksType) => b.blocked_user_id);
-
-  // Users that have blocked me
-  const blockedMeRes = await fetch(`/api/users/${myUserId}/blockedBy`);
-  if (!blockedMeRes.ok) {
-    console.error("Failed to fetch users that blocked me:", blockedMeRes.statusText);
-    return [];
-  }
-  const blockedMeIds = (await blockedMeRes.json()).map((b: BlocksType) => b.user_id);
-
-  // Users that I have sent friend requests to
-  const sentRequestsRes = await fetch(`/api/users/${myUserId}/sentFriendRequests`);
-  if (!sentRequestsRes.ok) {
-    console.error("Failed to fetch sent friend requests:", sentRequestsRes.statusText);
-    return [];
-  }
-  const sentRequestIds = (await sentRequestsRes.json()).map((r: any) => r.receiver_id);
-  
-  console.log("Friends:", friendIds);
-  console.log("Blocks:", blockIds);
-  console.log("Blocked me:", blockedMeIds);
-  console.log("Sent requests:", sentRequestIds);
-
-  for (const user of users) {
-    // If the user is myself, set status to "ok"
-    if (user.id === myUserId) {
-      console.log("This is my user:", user.id);
-      user.status = "ok";
+    const response = await fetch("/api/users");
+    if (!response.ok) {
+        console.error("Failed to fetch users:", response.statusText);
+        return [];
     }
-    // If the user is in my blocks list, set status to "blocked"
-    else if (blockIds.includes(user.id)) {
-      console.log("User is blocked:", user.id);
-      user.status = "blocked";
+
+    // Get my userId from the backend
+    const myUserRes = await fetch(`https://${location.host}/api/me`, { method: "GET", credentials: "include" });
+    if (!myUserRes.ok) {
+        console.error("Failed to fetch my user ID:", myUserRes.statusText);
+        return [];
     }
-    // If the user has blocked me, set status to "blocked_me"
-    else if (blockedMeIds.includes(user.id)) {
-      console.log("User has blocked me:", user.id);
-      user.status = "blocked_me";
+
+    const users: UsersData[] = await response.json();
+    const myUserId = (await myUserRes.json()).id;
+    if (myUserId === -1) {
+        console.error("Failed to fetch my user ID");
+        return [];
     }
-    // If the user is in my friends list, set status to "friend"
-    else if (friendIds.includes(user.id)) {
-      console.log("User is friend:", user.id);
-      user.status = "friend";
+
+    // Get myUser from the users list
+    const myUser = users.find(u => u.id === myUserId);
+
+    if (!myUser) {
+        console.error("Failed to find my user in the users list");
+        return [];
     }
-    // If I have sent a friend request to this user, set status to "request_sent"
-    else if (sentRequestIds.includes(user.id)) {
-      console.log("Friend request sent to user:", user.id);
-      user.status = "request_sent";
+
+    // Users that are my friends
+    const friendsRes = await fetch(`/api/users/${myUserId}/friends`);
+    if (!friendsRes.ok) {
+        console.error("Failed to fetch friends:", friendsRes.statusText);
+        return [];
     }
-    // Otherwise, set status to "ok"
-    else {
-      console.log("User is ok:", user.id);
-      user.status = "ok";
+    const friendIds = (await friendsRes.json()).map((f: FriendsType) => f.friend_id);
+
+    // Users that I have blocked
+    const blocksRes = await fetch(`/api/users/${myUserId}/blocks`);
+    if (!blocksRes.ok) {
+        console.error("Failed to fetch blocks:", blocksRes.statusText);
+        return [];
     }
-  }
-  return users;
+    const blockIds = (await blocksRes.json()).map((b: BlocksType) => b.blocked_user_id);
+
+    // Users that have blocked me
+    const blockedMeRes = await fetch(`/api/users/${myUserId}/blockedBy`);
+    if (!blockedMeRes.ok) {
+        console.error("Failed to fetch users that blocked me:", blockedMeRes.statusText);
+        return [];
+    }
+    const blockedMeIds = (await blockedMeRes.json()).map((b: BlocksType) => b.user_id);
+
+    // Users that I have sent friend requests to
+    const sentRequestsRes = await fetch(`/api/users/${myUserId}/sentFriendRequests`);
+    if (!sentRequestsRes.ok) {
+        console.error("Failed to fetch sent friend requests:", sentRequestsRes.statusText);
+        return [];
+    }
+    const sentRequestIds = (await sentRequestsRes.json()).map((r: any) => r.receiver_id);
+
+    console.log("Friends:", friendIds);
+    console.log("Blocks:", blockIds);
+    console.log("Blocked me:", blockedMeIds);
+    console.log("Sent requests:", sentRequestIds);
+
+    for (const user of users) {
+        // If the user is myself, set status to "ok"
+        if (user.id === myUserId) {
+            console.log("This is my user:", user.id);
+            user.status = "ok";
+        }
+        // If the user is in my blocks list, set status to "blocked"
+        else if (blockIds.includes(user.id)) {
+            console.log("User is blocked:", user.id);
+            user.status = "blocked";
+        }
+        // If the user has blocked me, set status to "blocked_me"
+        else if (blockedMeIds.includes(user.id)) {
+            console.log("User has blocked me:", user.id);
+            user.status = "blocked_me";
+        }
+        // If the user is in my friends list, set status to "friend"
+        else if (friendIds.includes(user.id)) {
+            console.log("User is friend:", user.id);
+            user.status = "friend";
+        }
+        // If I have sent a friend request to this user, set status to "request_sent"
+        else if (sentRequestIds.includes(user.id)) {
+            console.log("Friend request sent to user:", user.id);
+            user.status = "request_sent";
+        }
+        // Otherwise, set status to "ok"
+        else {
+            console.log("User is ok:", user.id);
+            user.status = "ok";
+        }
+    }
+    return users;
 };
 
 const sendRequest = async (userId: number, myUserId: number | undefined) => {
-  const res = await fetch(`/api/users/${myUserId}/sendFriendRequest`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ friendId: userId })
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    console.error("Failed to add friend:", res.status, text);
-    return false;
-  }
-  return true;
+    const res = await fetch(`/api/users/${myUserId}/sendFriendRequest`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ friendId: userId })
+    });
+    if (!res.ok) {
+        const text = await res.text().catch(() => res.statusText);
+        console.error("Failed to add friend:", res.status, text);
+        return false;
+    }
+    return true;
 };
 
 const unfriend = async (userId: number, myUserId: number | undefined) => {
-  const res = await fetch(`/api/users/${myUserId}/unfriend`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ friendId: userId })
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    console.error("Failed to unfriend user:", res.status, text);
-    return false;
-  }
-  return true;
+    const res = await fetch(`/api/users/${myUserId}/unfriend`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ friendId: userId })
+    });
+    if (!res.ok) {
+        const text = await res.text().catch(() => res.statusText);
+        console.error("Failed to unfriend user:", res.status, text);
+        return false;
+    }
+    return true;
 };
 
 const block = async (userId: number, myUserId: number | undefined) => {
-  const res = await fetch(`/api/users/${myUserId}/block`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ blockId: userId })
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    console.error("Failed to block user:", res.status, text);
-    return false;
-  }
-  return true;
+    const res = await fetch(`/api/users/${myUserId}/block`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blockId: userId })
+    });
+    if (!res.ok) {
+        const text = await res.text().catch(() => res.statusText);
+        console.error("Failed to block user:", res.status, text);
+        return false;
+    }
+    return true;
 };
 
 const unblock = async (userId: number, myUserId: number | undefined) => {
-  console.log("Unblock user function called with:", userId, myUserId);
-  const res = await fetch(`/api/users/${myUserId}/unblock`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ unblockId: userId })
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    console.error("Failed to unblock user:", res.status, text);
-    return false;
-  }
-  return true;
+    console.log("Unblock user function called with:", userId, myUserId);
+    const res = await fetch(`/api/users/${myUserId}/unblock`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unblockId: userId })
+    });
+    if (!res.ok) {
+        const text = await res.text().catch(() => res.statusText);
+        console.error("Failed to unblock user:", res.status, text);
+        return false;
+    }
+    return true;
 };
 
 export const mountDashboard = async (root: HTMLElement) => {
 
-  // Get the userId from localStorage
-  const userId = (await fetch(`https://${location.host}/api/me`, { method: "GET" }).then(r => r.json())).id;
-  if (!userId) {
-    console.error("User not authenticated");
-    return;
-  }
-  // const userId = Number(localStorage.getItem("userId") || "0");
-  // if (userId === 0) {
-  //   console.error("No userId found in localStorage");
-  //   return;
-  // }
+    // Get the userId from localStorage
+    const userId = (await fetch(`https://${location.host}/api/me`, { method: "GET" }).then(r => r.json())).id;
+    if (!userId) {
+        console.error("User not authenticated");
+        return;
+    }
+    // const userId = Number(localStorage.getItem("userId") || "0");
+    // if (userId === 0) {
+    //   console.error("No userId found in localStorage");
+    //   return;
+    // }
 
-  let users: UsersData[] = await getUsers();
+    let users: UsersData[] = await getUsers();
 
-  if (users.length === 0) {
-    console.error("No users found from the server");
-    return;
-  }
-  const myUser: UsersData | undefined = users.find(u => u.id === userId);
-  if (!myUser) {
-    console.error("Current user not found in users list");
-    return;
-  }
+    if (users.length === 0) {
+        console.error("No users found from the server");
+        return;
+    }
+    const myUser: UsersData | undefined = users.find(u => u.id === userId);
+    if (!myUser) {
+        console.error("Current user not found in users list");
+        return;
+    }
 
-  // My Dashboard elements
-  const myProfilePicEl = root.querySelector<HTMLImageElement>("#my-avatar")!;
-  const myNameEl = root.querySelector("#my-name") as HTMLDivElement;
-  const myLevelEl = root.querySelector("#my-level") as HTMLDivElement;
-  const myWinsEl = root.querySelector("#my-wins") as HTMLSpanElement;
-  const myLossesEl = root.querySelector("#my-losses") as HTMLSpanElement;
-  const myWinrateEl = root.querySelector("#my-winrate") as HTMLSpanElement;
-  const myAvatarEl = root.querySelector("#my-avatar") as HTMLDivElement;
-  // Update the My Dashboard section with the user's data
-  myProfilePicEl.src = `/api/users/${myUser.id}/pfp`;
-  myNameEl.textContent = myUser.username;
-  myLevelEl.textContent = `Level ${myUser.level}`;
-  myWinsEl.textContent = myUser.wins.toString();
-  myLossesEl.textContent = myUser.losses.toString();
-  const totalGames = myUser.wins + myUser.losses;
-  const winRate = totalGames > 0 ? Math.round((myUser.wins / totalGames) * 100) : 0;
-  myWinrateEl.textContent = `${winRate}%`;
+    // My Dashboard elements
+    const myProfilePicEl = root.querySelector<HTMLImageElement>("#my-avatar")!;
+    const myNameEl = root.querySelector("#my-name") as HTMLDivElement;
+    const myLevelEl = root.querySelector("#my-level") as HTMLDivElement;
+    const myWinsEl = root.querySelector("#my-wins") as HTMLSpanElement;
+    const myLossesEl = root.querySelector("#my-losses") as HTMLSpanElement;
+    const myWinrateEl = root.querySelector("#my-winrate") as HTMLSpanElement;
+    const myAvatarEl = root.querySelector("#my-avatar") as HTMLDivElement;
+    // Update the My Dashboard section with the user's data
+    myProfilePicEl.src = `/api/users/${myUser.id}/pfp`;
+    myNameEl.textContent = myUser.username;
+    myLevelEl.textContent = `Level ${myUser.level}`;
+    myWinsEl.textContent = myUser.wins.toString();
+    myLossesEl.textContent = myUser.losses.toString();
+    const totalGames = myUser.wins + myUser.losses;
+    const winRate = totalGames > 0 ? Math.round((myUser.wins / totalGames) * 100) : 0;
+    myWinrateEl.textContent = `${winRate}%`;
 
-  // Function to create a user card element
-  const createUserCard = (user: UsersData, myUser: UsersData | undefined) => {
-    const li = document.createElement("li");
-    const wins = user.wins;
-    const losses = user.losses;
-    const level = user.level;
+    // Function to create a user card element
+    const createUserCard = (user: UsersData, myUser: UsersData | undefined) => {
+        const li = document.createElement("li");
+        const wins = user.wins;
+        const losses = user.losses;
+        const level = user.level;
 
-    li.innerHTML = `
+        li.innerHTML = `
     <li class="usercard" data-user-id="${user.id}" data-status="${user.status}">
         <div class="usercard_left">
           <img class="avatar" src="/api/users/${user.id}/pfp" onerror="this.onerror=null; this.src='/api/public/user_pfps/default.png'"/>
@@ -267,197 +267,197 @@ export const mountDashboard = async (root: HTMLElement) => {
         </div>
       </li>`;
 
-      // Click handler to open Users Modal when clicking on user info in the users card
-      const usercardLeft = li.querySelector('.usercard_left') as HTMLDivElement;
-      if (usercardLeft) {
-        usercardLeft.style.cursor = 'pointer';
-        usercardLeft.addEventListener("click", () => {
-          console.log("Opening users modal for:", user.username);
-          openUsersModal(user);
+        // Click handler to open Users Modal when clicking on user info in the users card
+        const usercardLeft = li.querySelector('.usercard_left') as HTMLDivElement;
+        if (usercardLeft) {
+            usercardLeft.style.cursor = 'pointer';
+            usercardLeft.addEventListener("click", () => {
+                console.log("Opening users modal for:", user.username);
+                openUsersModal(user);
+            });
+        }
+
+        // Reference the buttons
+        const addFriendBtn = li.querySelector('[data-action="add-friend"]') as HTMLButtonElement;
+        const unfriendBtn = li.querySelector('[data-action="unfriend"]') as HTMLButtonElement;
+        const blockBtn = li.querySelector('[data-action="block"]') as HTMLButtonElement;
+        const unblockBtn = li.querySelector('[data-action="unblock"]') as HTMLButtonElement;
+
+        // Make the "add-friend" button behave as a toggle:
+        // - when status === "friend" => show "Remove Friend" (outlined)
+        // - otherwise => show "Add Friend" (filled)
+        if (user.status === "friend") {
+            addFriendBtn.textContent = "Remove Friend";
+            // Does not work.
+        } else {
+            addFriendBtn.textContent = "Add Friend";
+        }
+
+        addFriendBtn.addEventListener("click", async () => {
+            console.log("Toggling friend for: ", user.id, " current status:", user.status);
+            addFriendBtn.disabled = true;
+            const wasFriend = user.status === "friend";
+            const ok = wasFriend ? await unfriend(user.id, myUser?.id) : await sendRequest(user.id, myUser?.id);
+            if (!ok) {
+                addFriendBtn.disabled = false;
+                return;
+            }
+
+            if (wasFriend) {
+                user.status = "ok";
+                renderUserCards(usersListEl, users, userId, myUser);
+            } else {
+                addFriendBtn.textContent = "Request Sent";
+            }
         });
-      }
 
-      // Reference the buttons
-      const addFriendBtn = li.querySelector('[data-action="add-friend"]') as HTMLButtonElement;
-      const unfriendBtn = li.querySelector('[data-action="unfriend"]') as HTMLButtonElement;
-      const blockBtn = li.querySelector('[data-action="block"]') as HTMLButtonElement;
-      const unblockBtn = li.querySelector('[data-action="unblock"]') as HTMLButtonElement;
-
-      // Make the "add-friend" button behave as a toggle:
-      // - when status === "friend" => show "Remove Friend" (outlined)
-      // - otherwise => show "Add Friend" (filled)
-      if (user.status === "friend") {
-        addFriendBtn.textContent = "Remove Friend";
-        // Does not work.
-      } else {
-        addFriendBtn.textContent = "Add Friend";
-      }
-
-      addFriendBtn.addEventListener("click", async () => {
-          console.log("Toggling friend for: ", user.id, " current status:", user.status);
-          addFriendBtn.disabled = true;
-          const wasFriend = user.status === "friend";
-          const ok = wasFriend ? await unfriend(user.id, myUser?.id) : await sendRequest(user.id, myUser?.id);
-          if (!ok) {
-            addFriendBtn.disabled = false;
-            return;
-          }
-
-          if (wasFriend) {
-            user.status = "ok";
+        // Keep existing handlers (they will be hidden by CSS or redundant),
+        // but leave them to avoid breaking other flows.
+        unfriendBtn.addEventListener("click", async () => {
+            console.log("Unfriend user: ", user.id);
+            await unfriend(user.id, myUser?.id);
+            users = await getUsers();
             renderUserCards(usersListEl, users, userId, myUser);
-          } else {
-            addFriendBtn.textContent = "Request Sent";
-          }
-      });
+        });
 
-      // Keep existing handlers (they will be hidden by CSS or redundant),
-      // but leave them to avoid breaking other flows.
-      unfriendBtn.addEventListener("click", async () => {
-          console.log("Unfriend user: ", user.id);
-          await unfriend(user.id, myUser?.id);
-          users = await getUsers();
-          renderUserCards(usersListEl, users, userId, myUser);
-      });
+        blockBtn.addEventListener("click", async () => {
+            console.log("Block user:", user.id);
+            await block(user.id, myUser?.id);
+            users = await getUsers();
+            renderUserCards(usersListEl, users, userId, myUser);
+        });
 
-      blockBtn.addEventListener("click", async () => {
-          console.log("Block user:", user.id);
-          await block(user.id, myUser?.id);
-          users = await getUsers();
-          renderUserCards(usersListEl, users, userId, myUser);
-      });
+        unblockBtn.addEventListener("click", async () => {
+            console.log("Unblock user:", user.id);
+            await unblock(user.id, myUser?.id);
+            users = await getUsers();
+            renderUserCards(usersListEl, users, userId, myUser);
+        });
 
-      unblockBtn.addEventListener("click", async () => {
-          console.log("Unblock user:", user.id);
-          await unblock(user.id, myUser?.id);
-          users = await getUsers();
-          renderUserCards(usersListEl, users, userId, myUser);
-      });
-
-      return li;
-  };
-
-  // Populate the User Dashboard with user cards
-  const renderUserCards = (container: HTMLUListElement, users: UsersData[], userId: number, myUser: UsersData | undefined) => {
-    console.log("Rendering user cards, total users:", users.length);
-    console.log("Users data:", users);
-    container.innerHTML = "";
-    for (const user of users) {
-      if (user.id === userId)
-        continue;
-      const userCard = createUserCard(user, myUser);
-      container.appendChild(userCard);
-    }
-  };
-
-  // Opens the users modal (when clicking on a user card)
-  const openUsersModal = (user: UsersData) => {
-    // Elements inside the users modal that will be filled
-    const modal = document.getElementById("dashboard-users-modal") as HTMLDivElement;
-    const usernameEl = document.getElementById("dashboard-users-username") as HTMLHeadingElement;
-    const levelEl = document.getElementById("dashboard-users-level") as HTMLParagraphElement;
-    const avatarEl = document.getElementById("dashboard-users-avatar") as HTMLImageElement;
-    const winsEl = document.getElementById("dashboard-users-wins") as HTMLDivElement;
-    const lossesEl = document.getElementById("dashboard-users-losses") as HTMLDivElement;
-    const winrateEl = document.getElementById("dashboard-users-winrate") as HTMLDivElement;
-    const addFriendBtn = document.getElementById("dashboard-users-add-friend") as HTMLButtonElement;
-    const unfriendBtn = document.getElementById("dashboard-users-unfriend") as HTMLButtonElement;
-    const statusMessage = document.getElementById("dashboard-users-status-message") as HTMLDivElement;
-
-    // Fill the modal
-    usernameEl.textContent = user.username;
-    levelEl.textContent = `Level ${user.level}`;
-    avatarEl.src = `/api/users/${user.id}/pfp`;
-    winsEl.textContent = user.wins.toString();
-    lossesEl.textContent = user.losses.toString();
-    
-    const totalGames = user.wins + user.losses;
-    const winRate = totalGames > 0 ? Math.round((user.wins / totalGames) * 100) : 0;
-    winrateEl.textContent = `${winRate}%`;
-
-    // Hide all the action buttons
-    addFriendBtn.classList.add("hidden");
-    unfriendBtn.classList.add("hidden");
-    statusMessage.classList.add("hidden");
-
-    // Show appropriate button or status message based on user status
-    switch (user.status) {
-      case "ok":
-        addFriendBtn.classList.remove("hidden");
-        break;
-      case "friend":
-        unfriendBtn.classList.remove("hidden");
-        break;
-      case "blocked":
-        statusMessage.textContent = "You have blocked this user";
-        statusMessage.className = "w-full px-4 py-2 rounded-md bg-red-600 text-white text-center";
-        statusMessage.classList.remove("hidden");
-        break;
-      case "blocked_me":
-        statusMessage.textContent = "This user has blocked you";
-        statusMessage.className = "w-full px-4 py-2 rounded-md bg-yellow-600 text-white text-center";
-        statusMessage.classList.remove("hidden");
-        break;
-      case "request_sent":
-        statusMessage.textContent = "Friend request sent";
-        statusMessage.className = "w-full px-4 py-2 rounded-md bg-purple-600 text-white text-center";
-        statusMessage.classList.remove("hidden");
-        break;
-    }
-
-    // Simple event handlers - remove any existing listeners first
-    addFriendBtn.onclick = async () => {
-      console.log("Add friend from users modal:", user.id);
-      await sendRequest(user.id, myUser?.id);
-      modal.classList.add("hidden");
-      // Refresh the page data
-      users = await getUsers();
-      renderUserCards(usersListEl, users, userId, myUser);
+        return li;
     };
 
-    unfriendBtn.onclick = async () => {
-      console.log("Unfriend from users modal:", user.id);
-      await unfriend(user.id, myUser?.id);
-      modal.classList.add("hidden");
-      // Refresh the page data
-      users = await getUsers();
-      renderUserCards(usersListEl, users, userId, myUser);
+    // Populate the User Dashboard with user cards
+    const renderUserCards = (container: HTMLUListElement, users: UsersData[], userId: number, myUser: UsersData | undefined) => {
+        console.log("Rendering user cards, total users:", users.length);
+        console.log("Users data:", users);
+        container.innerHTML = "";
+        for (const user of users) {
+            if (user.id === userId)
+                continue;
+            const userCard = createUserCard(user, myUser);
+            container.appendChild(userCard);
+        }
     };
 
-    // Show the modal
-    modal.classList.remove("hidden");
-  };
+    // Opens the users modal (when clicking on a user card)
+    const openUsersModal = (user: UsersData) => {
+        // Elements inside the users modal that will be filled
+        const modal = document.getElementById("dashboard-users-modal") as HTMLDivElement;
+        const usernameEl = document.getElementById("dashboard-users-username") as HTMLHeadingElement;
+        const levelEl = document.getElementById("dashboard-users-level") as HTMLParagraphElement;
+        const avatarEl = document.getElementById("dashboard-users-avatar") as HTMLImageElement;
+        const winsEl = document.getElementById("dashboard-users-wins") as HTMLDivElement;
+        const lossesEl = document.getElementById("dashboard-users-losses") as HTMLDivElement;
+        const winrateEl = document.getElementById("dashboard-users-winrate") as HTMLDivElement;
+        const addFriendBtn = document.getElementById("dashboard-users-add-friend") as HTMLButtonElement;
+        const unfriendBtn = document.getElementById("dashboard-users-unfriend") as HTMLButtonElement;
+        const statusMessage = document.getElementById("dashboard-users-status-message") as HTMLDivElement;
 
-  const closeUsersModal = () => {
-    const modal = document.getElementById("dashboard-users-modal") as HTMLDivElement;
-    modal.classList.add("hidden");
-  };
+        // Fill the modal
+        usernameEl.textContent = user.username;
+        levelEl.textContent = `Level ${user.level}`;
+        avatarEl.src = `/api/users/${user.id}/pfp`;
+        winsEl.textContent = user.wins.toString();
+        lossesEl.textContent = user.losses.toString();
 
-  // Reference the ul element to append user cards to
-  const usersListEl = root.querySelector("#users-list") as HTMLUListElement;
-  // Render the user cards
-  renderUserCards(usersListEl, users, userId, myUser);
+        const totalGames = user.wins + user.losses;
+        const winRate = totalGames > 0 ? Math.round((user.wins / totalGames) * 100) : 0;
+        winrateEl.textContent = `${winRate}%`;
 
-  // Set up Users Modal close handlers
-  const usersModal = document.getElementById("dashboard-users-modal") as HTMLDivElement;
-  const usersCloseBtn = document.getElementById("dashboard-users-close") as HTMLButtonElement;
-  
-  if (usersCloseBtn) {
-    usersCloseBtn.addEventListener("click", closeUsersModal);
-  }
-  
-  if (usersModal) {
-    usersModal.addEventListener("click", (e) => {
-      if (e.target === usersModal) {
-        closeUsersModal();
-      }
-    });
-  }
+        // Hide all the action buttons
+        addFriendBtn.classList.add("hidden");
+        unfriendBtn.classList.add("hidden");
+        statusMessage.classList.add("hidden");
 
-  // User Dashboard elements
-  const searchInput = root.querySelector("#user-search") as HTMLInputElement;
+        // Show appropriate button or status message based on user status
+        switch (user.status) {
+            case "ok":
+                addFriendBtn.classList.remove("hidden");
+                break;
+            case "friend":
+                unfriendBtn.classList.remove("hidden");
+                break;
+            case "blocked":
+                statusMessage.textContent = "You have blocked this user";
+                statusMessage.className = "w-full px-4 py-2 rounded-md bg-red-600 text-white text-center";
+                statusMessage.classList.remove("hidden");
+                break;
+            case "blocked_me":
+                statusMessage.textContent = "This user has blocked you";
+                statusMessage.className = "w-full px-4 py-2 rounded-md bg-yellow-600 text-white text-center";
+                statusMessage.classList.remove("hidden");
+                break;
+            case "request_sent":
+                statusMessage.textContent = "Friend request sent";
+                statusMessage.className = "w-full px-4 py-2 rounded-md bg-purple-600 text-white text-center";
+                statusMessage.classList.remove("hidden");
+                break;
+        }
 
-  return () => {
-    console.log("Unmounting Dashboard");
-  };
+        // Simple event handlers - remove any existing listeners first
+        addFriendBtn.onclick = async () => {
+            console.log("Add friend from users modal:", user.id);
+            await sendRequest(user.id, myUser?.id);
+            modal.classList.add("hidden");
+            // Refresh the page data
+            users = await getUsers();
+            renderUserCards(usersListEl, users, userId, myUser);
+        };
+
+        unfriendBtn.onclick = async () => {
+            console.log("Unfriend from users modal:", user.id);
+            await unfriend(user.id, myUser?.id);
+            modal.classList.add("hidden");
+            // Refresh the page data
+            users = await getUsers();
+            renderUserCards(usersListEl, users, userId, myUser);
+        };
+
+        // Show the modal
+        modal.classList.remove("hidden");
+    };
+
+    const closeUsersModal = () => {
+        const modal = document.getElementById("dashboard-users-modal") as HTMLDivElement;
+        modal.classList.add("hidden");
+    };
+
+    // Reference the ul element to append user cards to
+    const usersListEl = root.querySelector("#users-list") as HTMLUListElement;
+    // Render the user cards
+    renderUserCards(usersListEl, users, userId, myUser);
+
+    // Set up Users Modal close handlers
+    const usersModal = document.getElementById("dashboard-users-modal") as HTMLDivElement;
+    const usersCloseBtn = document.getElementById("dashboard-users-close") as HTMLButtonElement;
+
+    if (usersCloseBtn) {
+        usersCloseBtn.addEventListener("click", closeUsersModal);
+    }
+
+    if (usersModal) {
+        usersModal.addEventListener("click", (e) => {
+            if (e.target === usersModal) {
+                closeUsersModal();
+            }
+        });
+    }
+
+    // User Dashboard elements
+    const searchInput = root.querySelector("#user-search") as HTMLInputElement;
+
+    return () => {
+        console.log("Unmounting Dashboard");
+    };
 }

@@ -5,170 +5,170 @@ export const rooms = [];
 // export const rooms = new Map();
 
 export class Room {
-  constructor(customId = null, type = "regular") {
-    this.id = customId || nextRoomId++;
-	this.name = customId;
-    this.players = new Map();
-    // Date when the room was created
-    this.createdAt = Date.now();
-    // "regular" for normal matchmaking,
-    // "tournament" for tournament matches,
-    // "private" for invitation-only rooms
-    this.type = type;
-  // build config first so we can derive paddle X positions
-  this.config = buildWorld();
-  this.state = this.initState();
-  const halfW = this.config.FIELD_WIDTH / 2;
-  // Place paddles slightly inside the left/right edges so server physics can detect collisions
-  this.tempState = { p1X: -halfW + 1, p1Y: 0, p2X: halfW - 1, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
-    this.ballV = resetBall();
-    this.loopInterval = null;
-    this.inputs = { left: 0, right: 0 };
-	this.inputQueue = { left: [], right: []}
-    // As optional parameters to override the default values e.g. buildWorld({ FIELD_WIDTH: 120, FIELD_HEIGHT: 50 })
-  }
-
-  initState() {
-    return {
-      p1X: 0,
-      p2X: 0,
-      p1Y: 0,
-      p2Y: 0,
-      ballX: 0,
-      ballY: 0,
-      scoreL: 0,
-      scoreR: 0,
-      started: false,
-      timestamp: null
-    };
-  }
-
-
-  closeRoom() {
-
-    // Stop loop if running
-    if (this.loopInterval) {
-      clearInterval(this.loopInterval);
-      this.loopInterval = null;
-    }
-
-    // Inform and close all sockets
-    for (const [ws] of this.players) {
-      if (ws && ws.readyState === 1) {
-        try {
-          ws.send(JSON.stringify({ type: "reset" }));
-          ws.close();
-        } catch {}
-      }
-    }
-
-    // Clear player map
-    this.players.clear();
-    
-    // Clear all state to ensure clean room closure
-    this.inputQueue = { left: [], right: [] };
-    this.state = this.initState();
-    const halfW = this.config.FIELD_WIDTH / 2;
-    this.tempState = { p1X: -halfW + 1, p1Y: 0, p2X: halfW - 1, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
-    this.ballV = resetBall();
-
-    // Remove from global rooms array
-    const idx = rooms.findIndex(r => r.id === this.id);
-    if (idx !== -1) rooms.splice(idx, 1);
-
-    console.log(`Closed room ${this.id}`);
-  }
-
-
-  addPlayer(userId, ws) {
-    // If this player is already in the room, do nothing
-    const side = this.players.size % 2 === 0 ? "left" : "right";
-
-    // Avoid using null/undefined as Map keys — create a lightweight placeholder socket object
-    let sock = ws;
-    if (!sock) {
-      sock = {
-        // marker so other code can detect placeholder sockets
-        _isPlaceholder: true,
-        // mimic websocket readyState closed
-        readyState: 3,
-        // no-op send/close to be safe
-        send: () => {},
-        close: () => {},
-      };
-    }
-
-    // Only reset room state if this is the first player or room was empty
-    const wasEmpty = this.players.size === 0;
-    
-    this.players.set(sock, { id: userId, side: side, ready: false, userId });
-    console.log(`User ${userId} added to room ${this.id}`);
-    
-    // Reset room state only for the first player who joins an empty room
-    if (wasEmpty) {
-      this.inputQueue = { left: [], right: [] };
-      
-      // Reset tempState
-      const halfW = this.config.FIELD_WIDTH / 2;
-      this.tempState = { p1X: -halfW + 1, p1Y: 0, p2X: halfW - 1, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
-      
-      // Reset ball velocity
-      this.ballV = resetBall();
-      
-      this.state = this.initState();
-      
-      // Stop any running game loop
-      if (this.loopInterval) {
-        clearInterval(this.loopInterval);
+    constructor(customId = null, type = "regular") {
+        this.id = customId || nextRoomId++;
+        this.name = customId;
+        this.players = new Map();
+        // Date when the room was created
+        this.createdAt = Date.now();
+        // "regular" for normal matchmaking,
+        // "tournament" for tournament matches,
+        // "private" for invitation-only rooms
+        this.type = type;
+        // build config first so we can derive paddle X positions
+        this.config = buildWorld();
+        this.state = this.initState();
+        const halfW = this.config.FIELD_WIDTH / 2;
+        // Place paddles slightly inside the left/right edges so server physics can detect collisions
+        this.tempState = { p1X: -halfW + 1, p1Y: 0, p2X: halfW - 1, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
+        this.ballV = resetBall();
         this.loopInterval = null;
-      }
+        this.inputs = { left: 0, right: 0 };
+        this.inputQueue = { left: [], right: [] }
+        // As optional parameters to override the default values e.g. buildWorld({ FIELD_WIDTH: 120, FIELD_HEIGHT: 50 })
     }
-    
-    // attach room metadata to the socket placeholder/real socket
-    try { sock._roomId = this.id; } catch {}
-    try { sock._side = side; } catch {}
-  }
 
-	removePlayer(ws) {
-		this.players.delete(ws);
-		console.log(`Player removed from room ${this.id}`);
+    initState() {
+        return {
+            p1X: 0,
+            p2X: 0,
+            p1Y: 0,
+            p2Y: 0,
+            ballX: 0,
+            ballY: 0,
+            scoreL: 0,
+            scoreR: 0,
+            started: false,
+            timestamp: null
+        };
+    }
 
-		// If this room is part of a tournament, handle automatic win
-		if (this.tournamentManager && this.matchId !== undefined) {
-			// Find remaining player
-			const remainingPlayer = [...this.players.values()][0];
-			if (remainingPlayer) {
-				// Award remaining player the win
-				this.tournamentManager.recordMatchResult(this.matchId, remainingPlayer.id);
-			}
-		}
 
-		this.inputQueue = { left: [], right: [] };
+    closeRoom() {
 
-		for ([ws] of this.players) {
-			if (!ws && ws.readyState !== 1)
-				this.players.delete(ws);
-		}
-	}
+        // Stop loop if running
+        if (this.loopInterval) {
+            clearInterval(this.loopInterval);
+            this.loopInterval = null;
+        }
 
-  getPlayer(ws) {
-    return this.players.get(ws);
-  }
+        // Inform and close all sockets
+        for (const [ws] of this.players) {
+            if (ws && ws.readyState === 1) {
+                try {
+                    ws.send(JSON.stringify({ type: "reset" }));
+                    ws.close();
+                } catch { }
+            }
+        }
 
-  get(roomId) {
-    return rooms[roomId];
-  }
+        // Clear player map
+        this.players.clear();
+
+        // Clear all state to ensure clean room closure
+        this.inputQueue = { left: [], right: [] };
+        this.state = this.initState();
+        const halfW = this.config.FIELD_WIDTH / 2;
+        this.tempState = { p1X: -halfW + 1, p1Y: 0, p2X: halfW - 1, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
+        this.ballV = resetBall();
+
+        // Remove from global rooms array
+        const idx = rooms.findIndex(r => r.id === this.id);
+        if (idx !== -1) rooms.splice(idx, 1);
+
+        console.log(`Closed room ${this.id}`);
+    }
+
+
+    addPlayer(userId, ws) {
+        // If this player is already in the room, do nothing
+        const side = this.players.size % 2 === 0 ? "left" : "right";
+
+        // Avoid using null/undefined as Map keys — create a lightweight placeholder socket object
+        let sock = ws;
+        if (!sock) {
+            sock = {
+                // marker so other code can detect placeholder sockets
+                _isPlaceholder: true,
+                // mimic websocket readyState closed
+                readyState: 3,
+                // no-op send/close to be safe
+                send: () => { },
+                close: () => { },
+            };
+        }
+
+        // Only reset room state if this is the first player or room was empty
+        const wasEmpty = this.players.size === 0;
+
+        this.players.set(sock, { id: userId, side: side, ready: false, userId });
+        console.log(`User ${userId} added to room ${this.id}`);
+
+        // Reset room state only for the first player who joins an empty room
+        if (wasEmpty) {
+            this.inputQueue = { left: [], right: [] };
+
+            // Reset tempState
+            const halfW = this.config.FIELD_WIDTH / 2;
+            this.tempState = { p1X: -halfW + 1, p1Y: 0, p2X: halfW - 1, p2Y: 0, ballX: 0, ballY: 0, scoreL: 0, scoreR: 0, p1_spd: 0, p2_spd: 0 };
+
+            // Reset ball velocity
+            this.ballV = resetBall();
+
+            this.state = this.initState();
+
+            // Stop any running game loop
+            if (this.loopInterval) {
+                clearInterval(this.loopInterval);
+                this.loopInterval = null;
+            }
+        }
+
+        // attach room metadata to the socket placeholder/real socket
+        try { sock._roomId = this.id; } catch { }
+        try { sock._side = side; } catch { }
+    }
+
+    removePlayer(ws) {
+        this.players.delete(ws);
+        console.log(`Player removed from room ${this.id}`);
+
+        // If this room is part of a tournament, handle automatic win
+        if (this.tournamentManager && this.matchId !== undefined) {
+            // Find remaining player
+            const remainingPlayer = [...this.players.values()][0];
+            if (remainingPlayer) {
+                // Award remaining player the win
+                this.tournamentManager.recordMatchResult(this.matchId, remainingPlayer.id);
+            }
+        }
+
+        this.inputQueue = { left: [], right: [] };
+
+        for ([ws] of this.players) {
+            if (!ws && ws.readyState !== 1)
+                this.players.delete(ws);
+        }
+    }
+
+    getPlayer(ws) {
+        return this.players.get(ws);
+    }
+
+    get(roomId) {
+        return rooms[roomId];
+    }
 }
 
 export function getOrCreateRoom(name = null) {
-  // Find the latest regular room that has less than 2 player
-  let room = rooms.find(r => r.type === "regular" && r.players.size < 2);
-  
-  // If no available, create a new one
-  if (!room) {
-    room = new Room(name, "regular");
-    rooms.push(room);
-  }
-  room.name = name;
-  return room;
+    // Find the latest regular room that has less than 2 player
+    let room = rooms.find(r => r.type === "regular" && r.players.size < 2);
+
+    // If no available, create a new one
+    if (!room) {
+        room = new Room(name, "regular");
+        rooms.push(room);
+    }
+    room.name = name;
+    return room;
 }

@@ -1,15 +1,44 @@
 <div class="flex flex-col items-center justify-center flex-grow">
-  <!-- Canvas -->
-  <canvas id="gameCanvas" class="w-[90vw] max-w-[1280px] h-[720px] bg-[#001f1f] rounded-lg shadow-lg"></canvas>
+    <!-- Canvas -->
+    <canvas id="gameCanvas" class="w-[90vw] max-w-[1280px] h-[720px] bg-[#001f1f] rounded-lg shadow-lg"></canvas>
 
-  <!-- Game Controls -->
-  <div id="gameControls" class="mt-2 flex gap-2 flex-wrap justify-center">
-    <button id="startBtn" class="px-3 py-1 bg-green-700 hover:bg-green-800 rounded text-sm">Play</button>
-    <button id="leaveBtn" class="px-3 py-1 bg-red-700 hover:bg-yellow-800 rounded text-sm">Home</button>
-  </div>
-  <div>
-    <button id="easyBtn" class="px-3 py-1 bg-green-700 hover:bg-green-800 rounded text-sm">Easy</button>
-    <button id="mediumBtn" class="px-3 py-1 bg-yellow-700 hover:bg-yellow-800 rounded text-sm">Medium</button>
-    <button id="hardBtn" class="px-3 py-1 bg-red-700 hover:bg-red-800 rounded text-sm">Hard</button>
-  </div>
+    <!-- Game Controls -->
+    <div id="gameControls" class="mt-2 flex gap-2 flex-wrap justify-center">
+        <button id="startBtn" class="px-3 py-1 bg-green-700 hover:bg-green-800 rounded text-sm">Play</button>
+        <button id="leaveBtn" class="px-3 py-1 bg-yellow-700 hover:bg-yellow-800 rounded text-sm">Home</button>
+        <button id="volumeBtn" class="px-3 py-1 bg-blue-700 hover:bg-blue-800 rounded text-sm">Volume</button>
+    </div>
+
+    <!-- Volume Controls Modal -->
+    <div id="volumeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-[#001f1f] p-6 rounded-lg shadow-lg min-w-[300px]">
+            <h3 class="text-xl mb-4 text-center">Volume Controls</h3>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block mb-2">Music Volume</label>
+                    <input type="range" id="musicVolume" min="0" max="100" value="25"
+                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <div>
+                    <label class="block mb-2">SFX Volume</label>
+                    <input type="range" id="sfxVolume" min="0" max="100" value="100"
+                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <button id="closeVolumeBtn" class="px-4 py-2 bg-blue-700 hover:bg-blue-800 rounded">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <button id="easyBtn" class="px-3 py-1 bg-green-700 hover:bg-green-800 rounded text-sm">Easy</button>
+        <button id="mediumBtn" class="px-3 py-1 bg-yellow-700 hover:bg-yellow-800 rounded text-sm">Medium</button>
+        <button id="hardBtn" class="px-3 py-1 bg-red-700 hover:bg-red-800 rounded text-sm">Hard</button>
+    </div>
 </div>

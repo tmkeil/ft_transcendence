@@ -5,240 +5,328 @@ import { Settings } from "../game/GameSettings.js";
 import { navigate } from "../router/router.js";
 
 type TournamentState = {
-  id: string;
-  status: "pending" | "active" | "completed";
-  round: number;
-  players: {
-    id: number;
-    username?: string;
-    score?: number;
-    ready?: boolean
-  }[];
-  // matches is used to place players in the tournament table.
-  // This info is sent every time the tournament state changes.
-  matches?: {
-    // Match ID. Round1: 0,1. Round2: 2
-    id: number;
-    // 1 (first round) or 2 (final)
+    id: string;
+    status: "pending" | "active" | "completed";
     round: number;
-    p1: {
-      id: number;
-      username?: string
-    } | undefined;
-    p2: {
-      id: number;
-      username?: string
-    } | undefined;
-    status: "pending" | "completed";
-    winner?: {
-      id: number;
-      username?: string
-    } | null;
-  }[];
+    players: {
+        id: number;
+        username?: string;
+        score?: number;
+        ready?: boolean
+    }[];
+    // matches is used to place players in the tournament table.
+    // This info is sent every time the tournament state changes.
+    matches?: {
+        // Match ID. Round1: 0,1. Round2: 2
+        id: number;
+        // 1 (first round) or 2 (final)
+        round: number;
+        p1: {
+            id: number;
+            username?: string
+        } | undefined;
+        p2: {
+            id: number;
+            username?: string
+        } | undefined;
+        status: "pending" | "completed";
+        winner?: {
+            id: number;
+            username?: string
+        } | null;
+    }[];
 };
 
 function setSlot(eid: string, user?: { id: number; username?: string }, root?: HTMLElement) {
-  const el = root?.querySelector<HTMLElement>(`#${eid}`)!;
-  if (!user) return;
-  el.textContent = user.username || `Player ${user.id}`;
-  el.dataset.userId = String(user.id);
+    const el = root?.querySelector<HTMLElement>(`#${eid}`)!;
+    if (!user) return;
+    el.textContent = user.username || `Player ${user.id}`;
+    el.dataset.userId = String(user.id);
 }
 
 // This renders the users in the tournament table
 function renderBracket(state: TournamentState, root: HTMLElement) {
 
-  const bracket_ids = ["r1g1_p1", "r1g1_p2", "r1g2_p1", "r1g2_p2"];
-  bracket_ids.forEach(id => {
-    const el = root.querySelector<HTMLElement>(`#${id}`)!;
-    el.textContent = "Waiting for player to join...";
-  });
+    const bracket_ids = ["r1g1_p1", "r1g1_p2", "r1g2_p1", "r1g2_p2"];
+    bracket_ids.forEach(id => {
+        const el = root.querySelector<HTMLElement>(`#${id}`)!;
+        el.textContent = "Waiting for player to join...";
+    });
 
-  const other_ids = ["r2_p1", "r2_p2", "winner"];
-  other_ids.forEach(id => {
-    const el = root.querySelector<HTMLElement>(`#${id}`)!;
-    el.textContent = "";
-  });
+    const other_ids = ["r2_p1", "r2_p2", "winner"];
+    other_ids.forEach(id => {
+        const el = root.querySelector<HTMLElement>(`#${id}`)!;
+        el.textContent = "";
+    });
 
-  // If the tournament did not start yet, the matches are not defined.
-  // Just list the players that already joined in the table slots.
-  if (!state.matches || state.matches.length === 0) {
-    const p = state.players || [];
-    setSlot("r1g1_p1", p[0], root);
-    setSlot("r1g1_p2", p[1], root);
-    setSlot("r1g2_p1", p[2], root);
-    setSlot("r1g2_p2", p[3], root);
-    return;
-  }
+    // If the tournament did not start yet, the matches are not defined.
+    // Just list the players that already joined in the table slots.
+    if (!state.matches || state.matches.length === 0) {
+        const p = state.players || [];
+        setSlot("r1g1_p1", p[0], root);
+        setSlot("r1g1_p2", p[1], root);
+        setSlot("r1g2_p1", p[2], root);
+        setSlot("r1g2_p2", p[3], root);
+        return;
+    }
 
-  // Once the tournament started, we have matches defined.
-  // matches = [
-  //  -- round 1 --
-  //  { id: 0, round: 1, p1: , p2: , ... }, -> Group 1
-  //  { id: 1, round: 1, p1: , p2: , ... }, -> Group 2
-  //  -- round 2 --
-  //  { id: 2, round: 2, p1: , p2: , ... } -> Final
-  // ]
+    // Once the tournament started, we have matches defined.
+    // matches = [
+    //  -- round 1 --
+    //  { id: 0, round: 1, p1: , p2: , ... }, -> Group 1
+    //  { id: 1, round: 1, p1: , p2: , ... }, -> Group 2
+    //  -- round 2 --
+    //  { id: 2, round: 2, p1: , p2: , ... } -> Final
+    // ]
 
-  // Round 1. Filter matches with round 1
-  const r1 = state.matches.filter(m => m.round === 1);
-  // Group 1
-  if (r1[0]) {
-    setSlot("r1g1_p1", r1[0].p1, root);
-    setSlot("r1g1_p2", r1[0].p2, root);
-  }
-  // Group 2
-  if (r1[1]) {
-    setSlot("r1g2_p1", r1[1].p1, root);
-    setSlot("r1g2_p2", r1[1].p2, root);
-  }
+    // Round 1. Filter matches with round 1
+    const r1 = state.matches.filter(m => m.round === 1);
+    // Group 1
+    if (r1[0]) {
+        setSlot("r1g1_p1", r1[0].p1, root);
+        setSlot("r1g1_p2", r1[0].p2, root);
+    }
+    // Group 2
+    if (r1[1]) {
+        setSlot("r1g2_p1", r1[1].p1, root);
+        setSlot("r1g2_p2", r1[1].p2, root);
+    }
 
-  // Round 2. Filter matches with round 2
-  const r2 = state.matches.filter(m => m.round === 2);
-  if (r2[0]) {
-    setSlot("r2_p1", r2[0].p1, root);
-    setSlot("r2_p2", r2[0].p2, root);
-  }
+    // Round 2. Filter matches with round 2
+    const r2 = state.matches.filter(m => m.round === 2);
+    if (r2[0]) {
+        setSlot("r2_p1", r2[0].p1, root);
+        setSlot("r2_p2", r2[0].p2, root);
+    }
+}
+
+let localSide: 'left' | 'right' | null = null;
+
+function determineLocalSide(status: any, localUserId: number): 'left' | 'right' | null {
+    if (localSide === 'left' || localSide === 'right') return localSide;
+    if (status?.mySide === 'left' || status?.mySide === 'right') return status.mySide;
+    if (status?.side === 'left' || status?.side === 'right') return status.side;
+    if (status?.leftPlayerId && status?.rightPlayerId) {
+        if (status.leftPlayerId === localUserId) return 'left';
+        if (status.rightPlayerId === localUserId) return 'right';
+    }
+    if (status?.p1?.id || status?.p2?.id) {
+        if (status.p1?.id === localUserId) return 'left';
+        if (status.p2?.id === localUserId) return 'right';
+    }
+    if (Array.isArray(status?.players) && status.players.length >= 2) {
+        if (status.players[0]?.id === localUserId) return 'left';
+        if (status.players[1]?.id === localUserId) return 'right';
+    }
+    return null;
 }
 
 export const TournamentController = async (root: HTMLElement) => {
-  // Initialize settings and game
-  const settings = new Settings();
-  const game = new GameManager(settings);
+    // Initialize settings and game
+    const settings = new Settings();
+    const game = new GameManager(settings);
 
-  // Get current user
-  const user = await fetch(`https://${location.host}/api/me`, {
-    method: "GET",
-    credentials: "include",
-  }).then((r) => r.json());
+    // Get current user
+    const user = await fetch(`/api/me`, {
+        method: "GET",
+        credentials: "include",
+    }).then((r) => r.json());
 
-  if (!user?.id) {
-    console.error("User not authenticated");
-    return () => { };
-  }
-  const userId = user.id;
-
-  // Connect websocket
-  ws.connect(userId);
-
-  // Ensure inputs are sent remotely
-  game.getInputHandler().bindRemoteSender((dir) => {
-    if (game.getInputHandler().isInputRemote() && ws) {
-      ws.send({ type: "input", direction: dir });
+    if (!user?.id) {
+        console.error("User not authenticated");
+        return () => { };
     }
-  });
+    const userId = user.id;
 
-  // --- DOM elements ---
-  const startBtn = root.querySelector<HTMLButtonElement>("#startBtn");
-  const leaveBtn = root.querySelector<HTMLButtonElement>("#leaveBtn");
-  const joinBtn = root.querySelector<HTMLButtonElement>("#joinBtn");
-  const statusEl = root.querySelector<HTMLDivElement>("#tournamentStatus");
+    // Connect websocket
+    ws.connect(userId);
 
-  // --- WebSocket event handlers ---
-  const onJoin = (msg: any) => {
-    console.log("Tournament join:", msg);
-    game.setConfig(msg.gameConfig);
-    game.applyServerState(msg.state);
-    game.getInputHandler().setRemote(true);
-    settings.setOpponent("REMOTE");
-  };
+    // Ensure inputs are sent remotely
+    game.getInputHandler().bindRemoteSender((dir) => {
+        if (game.getInputHandler().isInputRemote() && ws) {
+            ws.send({ type: "input", direction: dir });
+        }
+    });
 
-  // When the server sends a tournament update (in case of new round, player ready, joined a match)
-  const onTournamentUpdate = (msg: { type: "tournamentUpdate"; state: any }) => {
-    if (statusEl) {
-      statusEl.textContent = `Tournament ${msg.state.id} — ${msg.state.status} — Round ${msg.state.round}`;
+    // --- DOM elements ---
+    const startBtn = root.querySelector<HTMLButtonElement>("#startBtn");
+    const leaveBtn = root.querySelector<HTMLButtonElement>("#leaveBtn");
+    const volumeBtn = root.querySelector<HTMLButtonElement>("#volumeBtn")!;
+    const volumeModal = root.querySelector<HTMLDivElement>("#volumeModal")!;
+    const closeVolumeBtn = root.querySelector<HTMLButtonElement>("#closeVolumeBtn")!;
+    const musicSlider = root.querySelector<HTMLInputElement>("#musicVolume")!;
+    const sfxSlider = root.querySelector<HTMLInputElement>("#sfxVolume")!;
+    const joinBtn = root.querySelector<HTMLButtonElement>("#joinBtn");
+    const statusEl = root.querySelector<HTMLDivElement>("#tournamentStatus");
+
+    // --- WebSocket event handlers ---
+    const onJoin = (msg: any) => {
+        console.log("Tournament join:", msg);
+        game.setConfig(msg.gameConfig);
+        game.applyServerState(msg.state);
+        game.getInputHandler().setRemote(true);
+        settings.setOpponent("REMOTE");
+        if (msg.side === 'left' || msg.side === 'right') localSide = msg.side;
+    };
+
+    // When the server sends a tournament update (in case of new round, player ready, joined a match)
+    const onTournamentUpdate = (msg: { type: "tournamentUpdate"; state: any }) => {
+        if (statusEl) {
+            statusEl.textContent = `Tournament ${msg.state.id} — ${msg.state.status} — Round ${msg.state.round}`;
+        }
+        // Render the users in the tournament table.
+        renderBracket(msg.state, root);
+    };
+
+    const onState = (m: { type: "state"; state: ServerState }) => {
+        game.applyServerState(m.state);
+    };
+
+    const onEliminated = () => {
+        alert("You have been eliminated from the tournament!");
+        navigate("/");
+    };
+
+    const onComplete = () => {
+        alert("You are the winner of this tournament! Well done!");
+        navigate("/");
+    };
+
+    const onAborted = (m: { type: "tournamentAborted"; message?: string }) => {
+        alert(m?.message || "Tournament aborted: a player left.");
+        navigate("/");
+    };
+
+    const onJoinTournament = (m: { type: "joinedTournament"; t_id: string }) => {
+        insertTable(m.t_id);
+    };
+
+    const insertTable = (t_id: string) => {
+        root.querySelectorAll<HTMLElement>('[data-t_id]').forEach(t => t.dataset.t_id = t_id)
     }
-    // Render the users in the tournament table.
-    renderBracket(msg.state, root);
-  };
 
-  const onState = (m: { type: "state"; state: ServerState }) => {
-    game.applyServerState(m.state);
-  };
+    ws.on("join", onJoin);
+    ws.on("tournamentUpdate", onTournamentUpdate);
+    ws.on("state", onState);
+    ws.on("tournamentEliminated", onEliminated);
+    ws.on("tournamentComplete", onComplete);
+    ws.on("tournamentAborted", onAborted);
+    ws.on("joinedTournament", onJoinTournament);
 
-  const onEliminated = () => {
-    alert("You have been eliminated from the tournament!");
-    navigate("/");
-  };
+    // --- Volume control actions ---
+    const onVolumeOpen = () => {
+        volumeModal.classList.remove("hidden");
+    };
 
-  const onComplete = () => {
-    alert("You are the winner of this tournament! Well done!");
-    navigate("/");
-  };
+    const onVolumeClose = () => {
+        volumeModal.classList.add("hidden");
+    };
 
-  const onAborted = (m: { type: "tournamentAborted"; message?: string }) => {
-    alert(m?.message || "Tournament aborted: a player left.");
-    navigate("/");
-  };
+    const onMusicVolumeChange = (e: Event) => {
+        const value = parseInt((e.target as HTMLInputElement).value) / 100;
+        game.soundManager.setMusicVolume(value);
+    };
 
-  const onJoinTournament = (m: { type: "joinedTournament"; t_id: string }) => {
-    insertTable(m.t_id);
-  };
+    const onSFXVolumeChange = (e: Event) => {
+        const value = parseInt((e.target as HTMLInputElement).value) / 100;
+        game.soundManager.setSFXVolume(value);
+    };
 
-  const insertTable = (t_id: string) => {
-    root.querySelectorAll<HTMLElement>('[data-t_id]').forEach(t => t.dataset.t_id = t_id)
-  }
+    // --- Button handlers ---
+    const onStart = () => {
+        if (ws) ws.send({ type: "ready", userId });
+    };
 
-  ws.on("join", onJoin);
-  ws.on("tournamentUpdate", onTournamentUpdate);
-  ws.on("state", onState);
-  ws.on("tournamentEliminated", onEliminated);
-  ws.on("tournamentComplete", onComplete);
-  ws.on("tournamentAborted", onAborted);
-  ws.on("joinedTournament", onJoinTournament);
+    const onJoinBtn = () => {
+        if (ws && ws.userId) {
+            ws.send({ type: "joinTournament", userId: ws.userId });
+        }
+    };
 
-  // --- Button handlers ---
-  const onStart = () => {
-    if (ws) ws.send({ type: "ready", userId });
-  };
+    const onLeaveBtn = () => {
+        if (ws) {
+            ws.send({ type: "leave", userId });
+            ws.close();
+        }
+        navigate("/");
+    };
 
-  const onJoinBtn = () => {
-    if (ws && ws.userId) {
-      ws.send({ type: "joinTournament", userId: ws.userId });
+    // --- End-of-match watcher (same as Remote) ---
+    let prevPlaying = !!game.getGameStatus().playing;
+    let matchHandled = false;
+    let endWatcher = window.setInterval(() => {
+        const status: any = game.getGameStatus();
+        const playing = !!status.playing;
+        const reachedScoreLimit = (status.scoreL >= 5 || status.scoreR >= 5);
+
+        if (playing) matchHandled = false;
+
+        if (matchHandled && prevPlaying && (!playing || reachedScoreLimit)) {
+            matchHandled = true;
+            const winnerSide = (status.scoreL ?? 0) > (status.scoreR ?? 0) ? 'left' : 'right';
+            const localSide = determineLocalSide(status, userId);
+            const youWon = localSide && localSide === winnerSide;
+            if (youWon) {
+                game.soundManager.play("player_win");
+                alert("You won!");
+            } else {
+                game.soundManager.play("player_loss");
+                alert("You lost.");
+            }
+        }
+        prevPlaying = playing;
+    }, 250);
+
+    startBtn?.addEventListener("click", onStart);
+    joinBtn?.addEventListener("click", onJoinBtn);
+    leaveBtn?.addEventListener("click", onLeaveBtn);
+    volumeBtn.addEventListener("click", onVolumeOpen);
+    closeVolumeBtn.addEventListener("click", onVolumeClose);
+    musicSlider.addEventListener("input", onMusicVolumeChange);
+    sfxSlider.addEventListener("input", onSFXVolumeChange);
+
+    // Close modal when clicking outside
+    volumeModal.addEventListener("click", (e) => {
+        if (e.target === volumeModal) {
+            onVolumeClose();
+        }
+    });
+
+    function onLeave() {
+        try {
+            ws.send({ type: "leave", userId });
+            ws.close();
+        } catch {
+            ws.close();
+        }
     }
-  };
 
-  const onLeaveBtn = () => {
-    if (ws) {
-      ws.send({ type: "leave", userId });
-      ws.close();
-    }
-    navigate("/");
-  };
+    // --- Cleanup ---
+    return () => {
+        onLeave();
+        clearInterval(endWatcher);
 
-  startBtn?.addEventListener("click", onStart);
-  joinBtn?.addEventListener("click", onJoinBtn);
-  leaveBtn?.addEventListener("click", onLeaveBtn);
+        // remove WS listeners
+        ws.off("join", onJoin);
+        ws.off("tournamentUpdate", onTournamentUpdate);
+        ws.off("state", onState);
+        ws.off("tournamentEliminated", onEliminated);
+        ws.off("tournamentComplete", onComplete);
+        ws.off("tournamentAborted", onAborted);
+        ws.off("joinedTournament", onJoinTournament);
 
-  function onLeave() {
-    try {
-      ws.send({ type: "leave", userId });
-      ws.close();
-    } catch {
-      ws.close();
-    }
-  }
+        // Force cleanup GameManager BEFORE closing WebSocket
+        game.forceCleanup();
 
-  // --- Cleanup ---
-  return () => {
-    onLeave();
+        // ws.close();
 
-    // remove WS listeners
-    ws.off("join", onJoin);
-    ws.off("tournamentUpdate", onTournamentUpdate);
-    ws.off("state", onState);
-    ws.off("tournamentEliminated", onEliminated);
-    ws.off("tournamentComplete", onComplete);
-	ws.off("tournamentAborted", onAborted);
-    ws.off("joinedTournament", onJoinTournament);
-
-    // Force cleanup GameManager BEFORE closing WebSocket
-    game.forceCleanup();
-
-    // ws.close();
-
-    // remove button listeners
-    startBtn?.removeEventListener("click", onStart);
-    joinBtn?.removeEventListener("click", onJoinBtn);
-    leaveBtn?.removeEventListener("click", onLeaveBtn);
-  };
+        // remove button listeners
+        startBtn?.removeEventListener("click", onStart);
+        joinBtn?.removeEventListener("click", onJoinBtn);
+        leaveBtn?.removeEventListener("click", onLeaveBtn);
+        volumeBtn.removeEventListener("click", onVolumeOpen);
+        closeVolumeBtn.removeEventListener("click", onVolumeClose);
+        musicSlider.removeEventListener("input", onMusicVolumeChange);
+        sfxSlider.removeEventListener("input", onSFXVolumeChange);
+    };
 };

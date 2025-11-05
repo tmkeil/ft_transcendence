@@ -3,11 +3,11 @@
 UNAME_S := $(shell uname -s)
 
 build:
-	@echo " _____  __    _        __  __    ___   __    __  ___  __    __  ___   __ "
-	@echo "/__   \\/__\\  /_\\    /\\ \\ \\/ _\\  / __\\ /__\\/\\ \\ \\/   \\/__\\/\\ \\ \\/ __\\ /__\\"
-	@echo "  / /\\/ \\// //_\\\\  /  \\/ /\\ \\  / /   /_\\ /  \\/ / /\\ /_\\ /  \\/ / /   /_\\  "
-	@echo " / / / _  \\/  _  \\/ /\\  / _\\ \\/ /___//__/ /\\  / /_///__/ /\\  / /___//__  "
-	@echo " \\/  \\/ \\_/\\_/ \\_/\\_\\ \\/  \\__/\\____/\\__/\\_\\ \\/___,'\\__/\\_\\ \\/\\____/\\__/  "
+	@echo " _____  __    _        __  __    ___   __    __  ___  __    __  ___   __  "
+	@echo "/__   \/__\  /_\    /\ \ \/ _\  / __\ /__\/\ \ \/   \/__\/\ \ \/ __\ /__\\"
+	@echo "  / /\/ \// //_\\  /  \/ /\ \  / /   /_\ /  \/ / /\ /_\ /  \/ / /   /_\   "
+	@echo " / / / _  \/  _  \/ /\  / _\ \/ /___//__/ /\  / /_///__/ /\  / /___//__   "
+	@echo " \/  \/ \_/\_/ \_/\_\ \/  \__/\____/\__/\_\ \/___,'\__/\_\ \/\____/\__/   "
 	@echo "by Team Babylonians"
 	@echo
 	@echo "Building Services..."
@@ -21,13 +21,13 @@ up:
 
 down:
 	@echo "Stopping Services..."
-	docker compose down
-	rm -rf ./services/frontend/node_modules ./packages/shared/dist
+	sudo docker compose down
+	sudo rm -rf ./services/frontend/node_modules ./packages/shared/dist
 
 prune: down
 	@echo "Nuking Everything..."
-	docker system prune -af --volumes
-	rm -rf ./services/backend/data/database.sqlite
+	sudo docker system prune -af --volumes
+	sudo rm -rf ./services/backend/data/database.sqlite
 	find ./services/backend/data/public/user_pfps -mindepth 1 ! -name 'default.png' -exec rm -rf {} +
 
 re: down build
