@@ -342,7 +342,6 @@ const prepareChatModal = async () => {
     const modal = document.getElementById("chat-modal")! as HTMLDivElement;
     const closeBtn = document.getElementById("chat-close")! as HTMLButtonElement;
     const form = document.getElementById("chat-form")! as HTMLFormElement;
-    const inviteBtn = document.getElementById("chat-invite-btn")! as HTMLButtonElement;
 
     // Hide it if user clicks the close button
     const hide = () => modal.classList.add("hidden");
@@ -377,44 +376,6 @@ const prepareChatModal = async () => {
 
         input.value = "";
         input.focus();
-    });
-
-    inviteBtn.addEventListener("click", () => {
-        // Invite button still uses currentChat (if a friend was selected previously)
-        if (!currentChat) {
-            // No target selected — do nothing
-            return;
-        }
-
-        const roomId = crypto.randomUUID();
-
-        // Disable button temporarily
-        inviteBtn.disabled = true;
-
-        // Send game invitation to the selected friend
-        try {
-            ws.send({
-                type: "gameInvite",
-                to: currentChat.peerId,
-                roomId: roomId,
-                inviterName: localStorage.getItem("username") || ""
-            });
-
-            // Show invitation sent message in global chat as from me
-            const myUserId = parseInt(localStorage.getItem("userId") || "0");
-            const myUsername = localStorage.getItem("username") || "Me";
-            appendChatMsg(`Game invitation sent!`, myUserId, myUsername);
-
-            // Re-enable button after 2 seconds
-            setTimeout(() => {
-                inviteBtn.disabled = false;
-                inviteBtn.textContent = "Invite";
-            }, 2000);
-
-        } catch (err) {
-            inviteBtn.disabled = false;
-            inviteBtn.textContent = "Invite";
-        }
     });
 };
 

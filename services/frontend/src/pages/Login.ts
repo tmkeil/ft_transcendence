@@ -120,7 +120,7 @@ class Login {
         registerForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const username = (this.root.querySelector('#registerUsername') as HTMLInputElement).value.trim();
-            const email = (this.root.querySelector('#registerEmail') as HTMLInputElement).value.trim();
+            const email = "N/A";
             const password = (this.root.querySelector('#registerPassword') as HTMLInputElement).value.trim();
 
             if (!username || !email || !password) {
