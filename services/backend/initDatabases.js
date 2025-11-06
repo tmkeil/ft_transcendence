@@ -4,12 +4,12 @@ export function initDb(db) {
     db.serialize(() => {
         // Create users table with id (number), username (unique string), email (unique string), password hash (string),
         // authenticator key (unique string),number of wins (number), number of losses (number), level (number), status (string),
-        // if 2fa is enabled (boolean, 0 or 1), and creation date (datetime SQL type).
+        // if 2fa is enabled (boolean, 0 or 1), and creation date (datetime SQL type). MADE EMAIL NOT UNIQUE FOR BYPASS
         db.run(`
 			CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY,
 			username TEXT UNIQUE NOT NULL,
-			email TEXT UNIQUE NOT NULL,
+			email TEXT NOT NULL,
 			password_hash TEXT NOT NULL,
 			totp_secret TEXT UNIQUE,
 			wins INTEGER DEFAULT 0,

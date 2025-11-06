@@ -8,6 +8,42 @@ import { navigate } from "../router/router.js";
 
 let localSide: "left" | "right" | null = null;
 
+interface PlayerProfile {
+    id: number;
+    username: string;
+    level: number;
+    wins: number;
+    losses: number;
+}
+
+function calculateWinRate(wins: number, losses: number): string {
+    const total = wins + losses;
+    return total > 0 ? Math.round((wins / total) * 100) + '%' : '0%';
+}
+
+async function updatePlayerProfile(side: 'left' | 'right', userId: number) {
+    const response = await fetch(`/api/users/${userId}`);
+    if (!response.ok) return;
+    
+    const user = await response.json();
+    
+    const elements = {
+        avatar: document.getElementById(`${side}-player-avatar`) as HTMLImageElement,
+        name: document.getElementById(`${side}-player-name`) as HTMLDivElement,
+        level: document.getElementById(`${side}-player-level`) as HTMLDivElement,
+        wins: document.getElementById(`${side}-player-wins`) as HTMLElement,
+        losses: document.getElementById(`${side}-player-losses`) as HTMLElement,
+        winrate: document.getElementById(`${side}-player-winrate`) as HTMLElement
+    };
+
+    elements.avatar.src = `/api/users/${userId}/pfp`;
+    elements.name.textContent = user.username;
+    elements.level.textContent = `Level ${user.level}`;
+    elements.wins.textContent = user.wins;
+    elements.losses.textContent = user.losses;
+    elements.winrate.textContent = calculateWinRate(user.wins, user.losses);
+}
+
 function determineLocalSide(status: any, localUserId: number): "left" | "right" | null {
     if (localSide === 'left' || localSide === 'right') return localSide;
     if (status?.mySide === 'left' || status?.mySide === 'right') return status.mySide;
@@ -72,7 +108,10 @@ export const RemoteController = (root: HTMLElement) => {
         game.setConfig(m.gameConfig);
         game.applyServerState(m.state);
         tournamentStatus.textContent = `Joined ${m.roomName} as ${m.side === "left" ? "P1 (left)" : "P2 (right)"}`;
-        if (m.side === 'left' || m.side === 'right') localSide = m.side;
+        if (m.side === 'left' || m.side === 'right') {
+            localSide = m.side;
+            updatePlayerProfile(m.side, userId);
+        }
     };
 
     const onReset = () => {
@@ -88,6 +127,26 @@ export const RemoteController = (root: HTMLElement) => {
         game.soundManager.playTheme();
     };
 
+    ws.on("playerJoined", (m: { side: 'left' | 'right', userId: number }) => {
+        updatePlayerProfile(m.side, m.userId);
+    });
+    ws.on("playerLeft", (m: { side: 'left' | 'right' }) => {
+        const elements = {
+            avatar: document.getElementById(`${m.side}-player-avatar`) as HTMLImageElement,
+            name: document.getElementById(`${m.side}-player-name`) as HTMLDivElement,
+            level: document.getElementById(`${m.side}-player-level`) as HTMLDivElement,
+            wins: document.getElementById(`${m.side}-player-wins`) as HTMLElement,
+            losses: document.getElementById(`${m.side}-player-losses`) as HTMLElement,
+            winrate: document.getElementById(`${m.side}-player-winrate`) as HTMLElement
+        };
+
+        elements.avatar.src = '/api/public/user_pfps/default.png';
+        elements.name.textContent = 'Waiting...';
+        elements.level.textContent = 'Level 0';
+        elements.wins.textContent = '0';
+        elements.losses.textContent = '0';
+        elements.winrate.textContent = '0%';
+    });
     ws.on("state", onState);
     ws.on("join", onJoinRoom);
     ws.on("reset", onReset);

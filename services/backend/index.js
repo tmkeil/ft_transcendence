@@ -279,6 +279,36 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
 
             if (room.players.has(ws)) return;
             room.addPlayer(userId, ws);
+            ws.send(JSON.stringify({
+                type: "playerJoined", 
+                side: ws._side,
+                userId: userId
+            }));
+            // Notify existing players about the newly joined player
+            for (const [s, p] of room.players) {
+                if (s !== ws && s.readyState === 1) {
+                    try {
+                        s.send(JSON.stringify({
+                            type: "playerJoined",
+                            side: ws._side,
+                            userId: userId
+                        }));
+                    } catch { }
+                }
+            }
+
+            // Inform the new player about existing players (exclude itself)
+            for (const [s, p] of room.players) {
+                if (s !== ws && s.readyState === 1) {
+                    try {
+                        ws.send(JSON.stringify({
+                            type: "playerJoined",
+                            side: s._side,
+                            userId: p.userId
+                        }));
+                    } catch { }
+                }
+            }
             // Response to the client, which side the player is on and the current state to render the initial game state
             ws.send(JSON.stringify({ type: "join", roomName: room.name, roomId: room.id, side: ws._side, gameConfig: room.config, state: room.state }));
 
@@ -302,6 +332,16 @@ fastify.get("/ws", { websocket: true }, (connection, req) => {
                     room.tournamentManager.handlePlayerLeave(userId);
                 } catch (err) {
                     console.warn("Error handling tournament leave:", err?.message || err);
+                }
+            }
+            for (const [s, p] of room.players) {
+                if (s !== ws && s.readyState === 1) {
+                    try {
+                        s.send(JSON.stringify({
+                            type: "playerLeft",
+                            side: ws._side
+                        }));
+                    } catch { }
                 }
             }
             room.closeRoom();
