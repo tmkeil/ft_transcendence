@@ -9,7 +9,7 @@ export function broadcaster(clients, ws, msg) {
                 client.send(msg);
         }
         catch {
-            console.warn("Failed to braodcast message to client!");
+            console.warn("Failed to broadcast message to client!");
         }
     }
 }
@@ -47,7 +47,6 @@ export function checkAuthentication(request, reply, done) {
     if (!payload) return unauthenticated(reply);
     const userId = payload.sub;
     if (!userId) return unauthenticated(reply);
-    console.log("Authentication passed");
     done();
 }
 
@@ -60,6 +59,5 @@ export function checkAuthorization(request, reply, done) {
     if (!userId) return unauthenticated(reply);
     const requestUserId = parseInt(request.params.id);
     if (!requestUserId || userId != requestUserId) return unauthorized(reply);
-    console.log("Authorization passed");
     done();
 }

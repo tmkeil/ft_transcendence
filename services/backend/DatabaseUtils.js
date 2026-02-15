@@ -4,10 +4,42 @@
 export const fetchAll = async (db, sql, params) => {
     return new Promise((resolve, reject) => {
         db.all(sql, params, (err, rows) => {
-            if (err) reject(err);
+            if (err) return reject(err);
             resolve(rows || []);
         });
     });
+};
+
+// Promisify db.run to properly support async/await and return lastID/changes
+const runQuery = (db, sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) return reject(err);
+            resolve({ lastID: this.lastID, changes: this.changes });
+        });
+    });
+};
+
+// Allowed table and column names to prevent SQL injection via identifiers
+const ALLOWED_TABLES = ["users", "friends", "friend_requests", "blocks", "messages", "settings"];
+const ALLOWED_COLUMNS = [
+    "id", "username", "email", "password_hash", "totp_secret", "mfa_enabled",
+    "wins", "losses", "level", "status", "created_at",
+    "user_id", "friend_id", "sender_id", "receiver_id", "blocked_user_id",
+];
+
+const validateTable = (table) => {
+    if (!ALLOWED_TABLES.includes(table)) {
+        throw new Error(`Invalid table name: ${table}`);
+    }
+};
+
+const validateColumns = (columns) => {
+    for (const col of columns) {
+        if (!ALLOWED_COLUMNS.includes(col)) {
+            throw new Error(`Invalid column name: ${col}`);
+        }
+    }
 };
 
 // Edits a row in a table (friend_requests, users, messages, settings, friends, blocks) in the db
@@ -18,19 +50,22 @@ export const updateRowInTable = async (db, table, column, keys, keyValues, colVa
     let keyArray = keys.split(",").map((k) => k.trim());
     let keyValuesArray = keyValues.split(",").map((k) => k.trim());
 
-    console.log(`Updating element in table ${table}, where ${keys} = ${keyValues} to set ${column} = ${colValue}`);
     try {
+        validateTable(table);
+        validateColumns([column, ...keyArray]);
+
         if (keyArray.length !== keyValuesArray.length) {
             throw new Error("Keys and keyValues must have the same length");
         }
 
-        let sqlCmd = `UPDATE ${table} SET ${column} = '${String(colValue)}' `;
+        const params = [colValue];
+        let sqlCmd = `UPDATE ${table} SET ${column} = ? `;
         keyArray.forEach((element, index) => {
-            sqlCmd += (index === 0 ? "WHERE " : " AND ") + `${element} = '${String(keyValuesArray[index])}'`;
+            sqlCmd += (index === 0 ? "WHERE " : " AND ") + `${element} = ?`;
+            params.push(keyValuesArray[index]);
         });
 
-        console.log(`Executing SQL: ${sqlCmd}`);
-        await db.run(sqlCmd);
+        await runQuery(db, sqlCmd, params);
     } catch (error) {
         console.error("Error updating element in table: ", error);
     }
@@ -42,48 +77,33 @@ export const updateRowInTable = async (db, table, column, keys, keyValues, colVa
 // INSERT INTO friend_requests (sender_id, receiver_id) VALUES (1, 2)
 export const addRowToTable = async (db, table, columns, values) => {
     try {
-        console.log(`Adding row to table ${table}, columns: ${columns}, values: ${values}`);
-        // If the table already contains a row with the same unique keys and values, do nothing
-        if (!columns || !values) {
+        if (!columns || !values)
             return;
-        }
-        // Check if the table already contains a row with the same unique keys and values. If so, just return
-        // First get the unique columns of the table
+
+        const allColumns = columns.split(",").map((c) => c.trim());
+        validateTable(table);
+        validateColumns(allColumns);
+        const allValues = values.split(",").map((v) => v.trim());
+
+        // Check for duplicate rows before inserting
         const tableData = await fetchAll(db, `SELECT * FROM ${table}`);
         if (tableData.length !== 0) {
-            // Unique columns are all columns except id, created_at
             const uniqueColumns = Object.keys(tableData[0]).filter((col) => col !== "id" && col !== "created_at");
-            console.log("Unique columns of table ", table, ": ", uniqueColumns);
-            // "sender_id, receiver_id" into ["sender_id", "receiver_id"]
-            const columnArray = columns.split(",").map((c) => c.trim()).filter((c) => uniqueColumns.includes(c));
-            // "1, 2" into ["1", "2"]
-            const valueArray = values.split(",").map((v) => v.trim());
-            console.log("Column array: ", columnArray);
-            console.log("Value array: ", valueArray);
-            // Build a WHERE clause like "sender_id = '1' AND receiver_id = '2'"
-            let where = "";
-            for (let i = 0; i < columnArray.length; i++) {
-                const col = columnArray[i];
-                if (where !== "") {
-                    where += " AND ";
-                }
-                where += `${col} = '${String(valueArray[i])}'`;
-            }
-            console.log("WHERE clause: ", where);
-            if (where !== "") {
-                // Get the existing rows with the same unique keys and values
-                const existingRows = await fetchAll(db, `SELECT * FROM ${table} WHERE ${where}`);
-                // If there are existing rows, it means we should not insert that same row again
+            const filteredColumns = allColumns.filter((c) => uniqueColumns.includes(c));
+            const filteredValues = filteredColumns.map((col) => allValues[allColumns.indexOf(col)]);
+
+            if (filteredColumns.length > 0) {
+                const where = filteredColumns.map((col) => `${col} = ?`).join(" AND ");
+                const existingRows = await fetchAll(db, `SELECT * FROM ${table} WHERE ${where}`, filteredValues);
                 if (existingRows.length > 0) {
-                    console.log("Row already exists in table, not adding: ", existingRows);
                     return;
                 }
             }
         }
 
-        const sqlCmd = `INSERT INTO ${table} (${columns}) VALUES (${values})`;
-        console.log(`Executing SQL: ${sqlCmd}`);
-        await db.run(sqlCmd);
+        const placeholders = allValues.map(() => "?").join(", ");
+        const sqlCmd = `INSERT INTO ${table} (${columns}) VALUES (${placeholders})`;
+        await runQuery(db, sqlCmd, allValues);
     } catch (error) {
         console.error("Error adding row to table: ", error);
     }
@@ -97,19 +117,22 @@ export const removeRowFromTable = async (db, table, keys, keyValues) => {
     let keyArray = keys.split(",").map((k) => k.trim());
     let keyValuesArray = keyValues.split(",").map((k) => k.trim());
 
-    console.log(`Removing element from table ${table}, where ${keys} = ${keyValues}`);
     try {
+        validateTable(table);
+        validateColumns(keyArray);
+
         if (keyArray.length !== keyValuesArray.length) {
             throw new Error("Keys and keyValues must have the same length");
         }
 
+        const params = [];
         let sqlCmd = `DELETE FROM ${table} `;
         keyArray.forEach((element, index) => {
-            sqlCmd += (index === 0 ? "WHERE " : " AND ") + `${element} = '${String(keyValuesArray[index])}'`;
+            sqlCmd += (index === 0 ? "WHERE " : " AND ") + `${element} = ?`;
+            params.push(keyValuesArray[index]);
         });
 
-        console.log(`Executing SQL: ${sqlCmd}`);
-        await db.run(sqlCmd);
+        await runQuery(db, sqlCmd, params);
     } catch (error) {
         console.error("Error removing element from table: ", error);
     }
@@ -117,79 +140,44 @@ export const removeRowFromTable = async (db, table, keys, keyValues) => {
 
 // Adds an element to a users table column => (adding friends, blocking users, etc.)
 export const addElementToColumn = async (db, column, userId, elementId) => {
-    console.log(`Adding element ${elementId} to column ${column} for user ${userId}`);
     try {
+        validateColumns([column]);
         const row = await fetchAll(db, `SELECT ${column} FROM users WHERE id = ?`, [userId]);
-        if (row.length === 0) {
-            console.log("No user found with id: ", userId);
-            return;
-        }
-        console.log("Row data: ", row);
-        console.log("Column data: ", row[0]);
-        console.log("Column data for column ", column, ": ", row[0][column]);
+        if (row.length === 0) return;
 
         const data = row[0]?.[column];
         if (!data || data === "") {
-            // If the column is empty, just set it to the new elementId
-            await db.run(`UPDATE users SET ${column} = ? WHERE id = ?`, [String(elementId), userId]);
-            console.log("Element added successfully to empty column");
+            await runQuery(db, `UPDATE users SET ${column} = ? WHERE id = ?`, [String(elementId), userId]);
             return;
         }
-        // Split "  3, 5,7 " into ["  3", " 5", "7 "] and then into ["3", "5", "7"]
+
         let oldData = data.split(",").map((id) => id.trim());
+        if (oldData.includes(String(elementId))) return;
 
-        // If the id is already in the list, do nothing
-        if (oldData.includes(String(elementId))) {
-            console.log("Element already in the list: ", elementId);
-            return;
-        }
-
-        console.log("Old data: ", oldData);
-        // Add the new id to the list
         oldData.push(String(elementId));
         const newData = oldData.join(",");
-        console.log("New data: ", newData);
-        await db.run(`UPDATE users SET ${column} = ? WHERE id = ?`, [newData, userId]);
-        console.log("Element added successfully");
+        await runQuery(db, `UPDATE users SET ${column} = ? WHERE id = ?`, [newData, userId]);
     } catch (err) {
-        console.error("Error adding element to table: ", err);
-        return;
+        console.error("Error adding element to column: ", err);
     }
 };
 
 export const removeElementFromColumn = async (db, column, userId, elementId) => {
-    console.log(`Removing element ${elementId} from column ${column} for user ${userId}`);
     try {
+        validateColumns([column]);
         const row = await fetchAll(db, `SELECT ${column} FROM users WHERE id = ?`, [userId]);
-        if (!row || row.length === 0) {
-            console.log("No user found with id: ", userId);
-            return;
-        }
-        console.log("Row data: ", row);
-        console.log("Column data: ", row[0]);
-        console.log("Column data for column ", column, ": ", row[0][column]);
+        if (!row || row.length === 0) return;
+
         const data = row[0]?.[column];
+        if (!data || data === "") return;
 
-        if (!data || data === "") {
-            console.log("Column is empty, nothing to remove");
-            return;
-        }
         let oldData = data.split(",").map((id) => id.trim());
+        if (!oldData.includes(String(elementId))) return;
 
-        // If the id is not in the list, do nothing
-        if (!oldData.includes(String(elementId))) {
-            console.log("Element not found in the list: ", elementId);
-            return;
-        }
-        console.log("Old data: ", oldData);
-        // Remove the id from the list. Keep all elements that are not equal to elementId
         oldData = oldData.filter((id) => id !== String(elementId));
         const newData = oldData.join(",");
-        console.log("New data: ", newData);
-        await db.run(`UPDATE users SET ${column} = ? WHERE id = ?`, [newData, userId]);
-        console.log("Element removed successfully");
+        await runQuery(db, `UPDATE users SET ${column} = ? WHERE id = ?`, [newData, userId]);
     } catch (err) {
-        console.error("Error removing element from table: ", err);
-        return;
+        console.error("Error removing element from column: ", err);
     }
 };
