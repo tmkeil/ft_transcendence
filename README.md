@@ -66,34 +66,30 @@ Real-time features (remote gameplay, live chat, game invites, tournament updates
 The server runs the game physics at 60 fps (`setInterval` at 16 ms), processes input queues, and broadcasts state updates only when the game state has changed.
 
 ## Usage
-- You can simply clone this repo to your machine:
-`git clone https://github.com/tmkeil/ft_transcendence`
 
-- You **must** make a `.env` file in the root of the repository with these variables:
-```
-JWT_SECRET=[JSON Web Token Secret Key]
-
-GF_SECURITY_ADMIN_USER=[Grafana Admin Username]
-GF_SECURITY_ADMIN_PASSWORD=[Grafana Admin Password]
-GF_AUTH_ANONYMOUS_ENABLED=false
-GF_USERS_ALLOW_SIGN_UP=true
-
-SLACK_WEBHOOK_URL=[Slack Webhook URL for Alert Manager]
+```bash
+git clone https://github.com/tmkeil/ft_transcendence
+cd ft_transcendence
+cp .env.example .env
+make build
 ```
 
-- Then you can use the Makefile to quickly build everything:
-`make build`
-(You can use `make help` for info on additional Make commands)
+The `.env` file requires the following variables:
 
-- Once everything is up, you can navigate to `https://localhost:8443/` and bypass the warning regarding the self-signed SSL certificate.
+| Variable | Purpose |
+|----------|---------|
+| `JWT_SECRET` | Secret key for signing JSON Web Tokens |
+| `GF_SECURITY_ADMIN_USER` | Grafana admin username (optional) |
+| `GF_SECURITY_ADMIN_PASSWORD` | Grafana admin password (optional) |
+| `SLACK_WEBHOOK_URL` | Slack webhook for AlertManager (optional) |
 
-- You are up and running!
+Once running, open `https://localhost:8443/` and accept the self-signed certificate warning.
 
 ## Credits
 **Jacob Graf** - Game design, game logic, 3D graphics, user statistics, general project architecture, implementation of all gamemodes, playtesting.
 
 **Noel** - Cybersecurity, user registration flow, authentication and authorization systems, user settings, frontend and UI design, project management, sound design and music, playtesting, documentation.
 
-**Myself (Tobias Keil)** - Website routing and web sockets, networking and remote player systems, database and backend setup, general project architecture, live chat and dashboard implementations, user friending, blocking and invites system, playtesting.
+**Myself** - Website routing and web sockets, networking and remote player systems, database and backend setup, general project architecture, live chat and dashboard implementations, user friending, blocking and invites system, playtesting.
 
 **Betül Büber** - DevOps and monitoring systems, playtesting.
