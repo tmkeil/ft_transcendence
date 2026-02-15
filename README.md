@@ -2,38 +2,68 @@
   <h1>
     🏓 ft_transcendence (42 project)
   </h1>
-  <p>
-    <b><i>We are Team Babylonians.</i></b>
-  </p>
 </div>
 
 In collaboration with my peers [Jacob](https://github.com/Cimex404), [Noel](https://github.com/DeusExFiasco) and [Betül](https://github.com/Bebuber).
 
 ## About
-This is the final project of the 42 Common Core. It is meant to put all of our skills to the test by making a full-stack web application with tons of features. The premise is to make our own version of Pong with some modern features of our choice. The project is comprised of a mandatory part and optional Major and Minor modules which count toward the final score.
+ft_transcendence is the capstone project of the 42 Common Core — a full-stack multiplayer Pong web application. The game faithfully recreates the original 1972 Pong while adding modern features like remote play, a tournament system, live chat, and 3D rendering. My focus was on the backend architecture: WebSocket networking, the database layer, the live chat system, the user dashboard with friend/block management, and overall routing and project structure.
 
-## Base Features
-The basic features that Transcendence had to have are a local game of pong between two players and a round-based tournament system between multiple players. The gameplay must be faithful to that of the original 1972 game. How the tournament system works exactly is left up to us to decide, so we took some liberties there. Our website has to be secure and protected against SQL injections and malicious API calls. I focused primarily on the backend architecture, building the WebSocket-based networking for remote play, the database layer, the live chat system, the user dashboard with friend/block management, and the overall routing and project structure.
+## Features
+- **Remote multiplayer** — real-time online play via WebSockets with server-side game physics
+- **Tournament system** — round-based matchmaking for multiple players
+- **AI opponent** — single-player mode with three difficulty levels
+- **3D graphics** — rendered with Babylon.js
+- **Live chat** — messaging, game invites, and player statistics
+- **User dashboard** — profiles, friend/block management, profile pictures, match history
+- **Authentication** — JWT sessions, bcrypt password hashing, optional 2FA via Google Authenticator
+- **Monitoring** — Prometheus, Grafana, and AlertManager for metrics and alerting
+- **Frontend** — SPA built with Vite and Tailwind CSS
+- **Database** — SQLite for persistent user, social, and game data
 
-## Modules
-We picked 9 major modules and 4 minor modules. A minor module is worth half a major one, thus adding up to a total of 11 module points. The requirement for 100% grade is 7, meaning we have the maximum bonus of 125%.
+## Architecture
 
-### Major Modules:
-- **Backend Framework (Fastify)** - Our backend routes and endpoints use a Fastify for JavaScript.
-- **Remote Authentication** - There is support for the Google Authenticator as a 3rd party authentication.
-- **Remote Players** - The game can be played online with remote players via use of web sockets.
-- **Live Chat** - There is a live chat system where players can send messages, game invites and view eachother's statistics.
-- **User Dashboard and Statistics** - There is a dynamic dashboard where users can view eachother's statistics and can send friend requests. There is also a profile picture system and a blocking system.
-- **AI Opponent** - An additional mode where players can play endlessly against an AI with three different difficulty settings.
-- **Two-Factor Authentication and JWTs** - Sessions are stored with browser cookies and verified using JSON Web Tokens. Users can activate 2FA and scan a QR to link their Google Authenticator to their profile.
-- **3D Graphics (Babylon)** - The game is rendered in 3D using a graphical library called Babylon.js (which is where our team got its name from).
-- **Server-Side Pong API** - In conjunction with the remote players system we calculate the game's data such as paddle positions and ball velocity on the server and broadcast to the clients via a custom API.
+### Docker & Containerization
+The entire application runs as a multi-container setup orchestrated via Docker Compose. All services communicate over a shared bridge network (`transcendence-net`). The stack consists of:
 
-### Minor Modules:
-- **Frontend Framework** (Tailwind and Vite) - The frontend uses Tailwind CSS for UI design and rendering, as well as Vite for fast reload.
-- **Database Implementation (sqlite)** - We use a database to store user data, friend and block data and game data.
-- **DevOps Monitoring System (Prometheus, Grafana and Alert Manager)** - Three additional containers have been set up to gather metrics and display them. There is also an alert system linked to a custom Slack channel.
-- **Multiple Browser Compatibility** - Our Transcendence works on multiple browsers (though Firefox is its native one).
+| Container | Role |
+|-----------|------|
+| **nginx** | Reverse proxy & SSL termination |
+| **frontend** | Vite dev server serving the SPA |
+| **backend** | Fastify API server (REST + WebSocket) |
+| **prometheus** | Metrics collection |
+| **grafana** | Metrics dashboard |
+| **alertmanager** | Alert routing (Slack integration) |
+| **nginx-exporter** | Exposes nginx metrics to Prometheus |
+
+Persistent data (database, Grafana dashboards, Prometheus TSDB) is stored in Docker volumes. The backend database file is bind-mounted to `services/backend/data/` so it survives container restarts.
+
+### Nginx Configuration
+Nginx acts as the single entry point on ports `8080` (HTTP) and `8443` (HTTPS). HTTP requests are automatically redirected to HTTPS via a `301` redirect. TLS is handled with a self-signed certificate. The routing works as follows:
+
+- `/` → proxied to the **frontend** container (`http://frontend:5173`)
+- `/api/*` → proxied to the **backend** container (`http://backend:3000`)
+- `/ws` → proxied to the **backend** with WebSocket upgrade headers
+
+WebSocket connections use extended timeouts (`proxy_read_timeout 86400s`) to keep long-lived game sessions alive without nginx closing them.
+
+### WebSocket Communication
+Real-time features (remote gameplay, live chat, game invites, tournament updates) are handled over a single persistent WebSocket connection per client at `/ws`.
+
+**Authentication:** On upgrade, the backend extracts the JWT from the `auth` cookie and verifies it via `fastify.jwt.verify()`. If the token is missing or invalid, `connection.socket.close()` is called immediately — unauthenticated clients never reach the message handler.
+
+**Connection lifecycle:** Each authenticated user is tracked in a `Map<userId, Set<WebSocket>>`, allowing multiple concurrent connections (e.g. multiple browser tabs). On disconnect, the server removes the socket from the set, cleans up any game room the player was in, notifies active tournament managers via `handleDisconnect`, and deletes the user mapping once all of their connections are closed.
+
+**Message protocol:** Messages are JSON-encoded with a `type` field that determines the handler:
+
+- `chat` — broadcast chat messages to all connected clients
+- `join` / `leave` — enter or leave a game room
+- `input` — send paddle movement to the server-side game loop
+- `ready` — signal readiness to start a match
+- `gameInvite` / `acceptGameInvite` — private match invitations
+- `joinTournament` — enter the tournament matchmaking queue
+
+The server runs the game physics at 60 fps (`setInterval` at 16 ms), processes input queues, and broadcasts state updates only when the game state has changed.
 
 ## Usage
 - You can simply clone this repo to your machine:
