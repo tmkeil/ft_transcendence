@@ -7,13 +7,13 @@
   </p>
 </div>
 
-In collaboration with my peers [Jacob](https://github.com/Cimex404), [Tobias](https://github.com/tmkeil) and [Betül](https://github.com/Bebuber).
+In collaboration with my peers [Jacob](https://github.com/Cimex404), [Noel](https://github.com/DeusExFiasco) and [Betül](https://github.com/Bebuber).
 
 ## About
 This is the final project of the 42 Common Core. It is meant to put all of our skills to the test by making a full-stack web application with tons of features. The premise is to make our own version of Pong with some modern features of our choice. The project is comprised of a mandatory part and optional Major and Minor modules which count toward the final score.
 
 ## Base Features
-The basic features that Transcendence had to have are a local game of pong between two players and a round-based tournament system between multiple players. The gameplay must be faithful to that of the original 1972 game. How the tournament system works exactly is left up to us to decide, so we took some liberties there. Our website has to be secure and protected against SQL injections and malicious API calls. I focused primarily on this aspect, creating the login/register flow, 2FA system, JWT and cookie management and API protection with Authorization pre-handlers.
+The basic features that Transcendence had to have are a local game of pong between two players and a round-based tournament system between multiple players. The gameplay must be faithful to that of the original 1972 game. How the tournament system works exactly is left up to us to decide, so we took some liberties there. Our website has to be secure and protected against SQL injections and malicious API calls. I focused primarily on the backend architecture, building the WebSocket-based networking for remote play, the database layer, the live chat system, the user dashboard with friend/block management, and the overall routing and project structure.
 
 ## Modules
 We picked 9 major modules and 4 minor modules. A minor module is worth half a major one, thus adding up to a total of 11 module points. The requirement for 100% grade is 7, meaning we have the maximum bonus of 125%.
@@ -37,7 +37,7 @@ We picked 9 major modules and 4 minor modules. A minor module is worth half a ma
 
 ## Usage
 - You can simply clone this repo to your machine:
-`git clone https://github.com/kixikCodes/ft_transcendence`
+`git clone https://github.com/tmkeil/ft_transcendence`
 
 - You **must** make a `.env` file in the root of the repository with these variables:
 ```
@@ -62,10 +62,8 @@ SLACK_WEBHOOK_URL=[Slack Webhook URL for Alert Manager]
 ## Credits
 **Jacob Graf** - Game design, game logic, 3D graphics, user statistics, general project architecture, implementation of all gamemodes, playtesting.
 
-**Tobias Keil** - Website routing and web sockets, networking and remote player systems, database and backend setup, general project architecture, live chat and dashboard implementations, user friending, blocking and invites system, playtesting.
+**Noel** - Cybersecurity, user registration flow, authentication and authorization systems, user settings, frontend and UI design, project management, sound design and music, playtesting, documentation.
+
+**Myself (Tobias Keil)** - Website routing and web sockets, networking and remote player systems, database and backend setup, general project architecture, live chat and dashboard implementations, user friending, blocking and invites system, playtesting.
 
 **Betül Büber** - DevOps and monitoring systems, playtesting.
-
-**Myself** - Cybersecurity, user registration flow, authentication and authorization systems, user settings, frontend and UI design, project management, sound design and music, playtesting, documentation.
-
-_Special Thanks:_ [skyecodes](https://github.com/skyecodes) for help with profile picture system implementation, playtesting and providing a server to host the project for online testing. Also, much needed moral support.
